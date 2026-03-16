@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BookOpen, UserCheck, Mail, ScanFace, Lock, Quote, Loader2, ShieldCheck, LayoutDashboard, Users, LogOut, ArrowLeft } from "lucide-react";
+import { BookOpen, UserCheck, Mail, ScanFace, Lock, Quote, Loader2, ShieldCheck, LayoutDashboard, Users, LogOut, ArrowLeft, Shield } from "lucide-react";
 import { PURPOSES, LibraryVisitor } from "@/lib/mock-data";
 import { useLibraryStore } from "@/hooks/use-library-store";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,7 @@ export default function VisitorTerminal() {
   const auth = useAuth();
   const { addLog, visitors, isLoaded, claimAdminStatus, revokeAdminStatus, isAdmin } = useLibraryStore();
   
-  const [step, setStep] = useState<"identify" | "role-select" | "welcome">("identify");
+  const [step, setStep] = useState<"identify" | "staff-portal" | "role-select" | "welcome">("identify");
   const [email, setEmail] = useState("");
   const [selectedVisitor, setSelectedVisitor] = useState<LibraryVisitor | null>(null);
   const [selectedPurpose, setSelectedPurpose] = useState("");
@@ -100,14 +100,15 @@ export default function VisitorTerminal() {
         title: "Administrative Mode",
         description: "Librarian privileges granted for this session.",
       });
+      setStep("welcome");
     } else {
       revokeAdminStatus();
       toast({
         title: "Student Mode",
         description: "Accessing terminal as a regular patron.",
       });
+      setStep("welcome");
     }
-    setStep("welcome");
   };
 
   const handleRfidSimulate = () => {
@@ -244,19 +245,30 @@ export default function VisitorTerminal() {
                     <span className="w-full border-t border-muted/50" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-3 text-muted-foreground font-semibold">Digital RFID Access</span>
+                    <span className="bg-white px-3 text-muted-foreground font-semibold">Institutional Access</span>
                   </div>
                 </div>
 
-                <Button 
-                  onClick={handleRfidSimulate}
-                  variant="outline" 
-                  className="w-full h-20 border-2 border-dashed border-primary/20 hover:border-primary hover:bg-primary/5 rounded-xl flex flex-col gap-1 transition-all group"
-                  disabled={isProcessing}
-                >
-                  <ScanFace className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
-                  <span className="text-primary font-bold tracking-tight">Tap Student ID Card</span>
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Button 
+                    onClick={handleRfidSimulate}
+                    variant="outline" 
+                    className="h-20 border-2 border-dashed border-primary/20 hover:border-primary hover:bg-primary/5 rounded-xl flex flex-col gap-1 transition-all group"
+                    disabled={isProcessing}
+                  >
+                    <ScanFace className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
+                    <span className="text-primary font-bold text-xs">Tap RFID ID Card</span>
+                  </Button>
+                  <Button 
+                    onClick={() => setStep("staff-portal")}
+                    variant="outline" 
+                    className="h-20 border-2 border-dashed border-accent/20 hover:border-accent hover:bg-accent/5 rounded-xl flex flex-col gap-1 transition-all group"
+                    disabled={isProcessing}
+                  >
+                    <Shield className="w-6 h-6 text-accent group-hover:scale-110 transition-transform" />
+                    <span className="text-accent font-bold text-xs">Librarian Login</span>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -267,6 +279,56 @@ export default function VisitorTerminal() {
               </div>
             </div>
           </div>
+        )}
+
+        {step === "staff-portal" && (
+          <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-md animate-in zoom-in-95 duration-300">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mb-4">
+                <Lock className="w-10 h-10 text-accent" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-primary">Librarian Portal</CardTitle>
+              <CardDescription className="text-base">
+                Access administrative controls for the NEU Library System.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <form onSubmit={handleIdentify} className="space-y-4">
+                <div className="space-y-2">
+                  <Input 
+                    placeholder="Staff Institutional Email" 
+                    className="h-12 text-lg border-2 border-muted focus-visible:border-accent focus-visible:ring-0 rounded-xl"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isProcessing}
+                  />
+                  <Input 
+                    type="password"
+                    placeholder="Staff Password" 
+                    className="h-12 text-lg border-2 border-muted focus-visible:border-accent focus-visible:ring-0 rounded-xl"
+                    required
+                    disabled={isProcessing}
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 text-lg font-bold bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl shadow-lg transition-transform active:scale-95"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" /> : "Authorize Access"}
+                </Button>
+              </form>
+              <Button 
+                variant="ghost" 
+                className="w-full h-12 font-bold rounded-xl text-muted-foreground" 
+                onClick={() => setStep("identify")}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Return to Patron Terminal
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {step === "role-select" && (
