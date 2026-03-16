@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -8,15 +7,18 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, LineChart, Line, Legend
 } from "recharts";
-import { Users, GraduationCap, Briefcase, BookOpen, Download, Calendar, Activity } from "lucide-react";
+import { Users, GraduationCap, Briefcase, BookOpen, Download, Calendar, Activity, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, subDays, isWithinInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminDashboard() {
   const { logs, isLoaded } = useLibraryStore({ fetchLogs: true });
+  const { toast } = useToast();
   const [timeRange, setTimeRange] = useState("all");
   const [mounted, setMounted] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -78,23 +80,109 @@ export default function AdminDashboard() {
     });
   }, [logs, mounted]);
 
-  const generateReport = () => {
-    const reportData = {
-      reportType: "Library Patronage Report",
-      generatedAt: new Date().toISOString(),
-      timeRange,
-      metrics: stats,
-      rawLogs: filteredLogs
-    };
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `neu_library_patronage_${format(new Date(), "yyyy-MM-dd")}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const generateReport = async () => {
+    setIsExporting(true);
+    try {
+      // Dynamic imports for PDF libraries
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+
+      const doc = new jsPDF();
+
+      // Professional Header
+      doc.setFillColor(26, 54, 93); // Oxford Blue from globals.css
+      doc.rect(0, 0, 210, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont("helvetica", "bold");
+      doc.text("NEU LIBRARY", 14, 20);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("Institutional Patronage & Scholarly Traffic Report", 14, 28);
+      doc.text(`Period: ${timeRange.toUpperCase()}`, 14, 34);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.text(`Generated: ${format(new Date(), "PPP p")}`, 145, 20);
+
+      // Executive Summary Section
+      doc.setTextColor(26, 54, 93);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Executive Summary", 14, 55);
+      
+      doc.setDrawColor(220, 220, 220);
+      doc.line(14, 58, 196, 58);
+
+      const summaryTableData = [
+        ["Key Metric", "Institutional Total"],
+        ["Total Patronage Traffic", stats.total.toString()],
+        ["Student Research Participants", stats.students.toString()],
+        ["Faculty & Staff Engagement", stats.employees.toString()],
+        ["Unique Individual Scholars", stats.uniqueVisitors.toString()],
+        ["Engagement Index (Return Rate)", `${stats.total > 0 ? ((stats.uniqueVisitors / stats.total) * 100).toFixed(1) : 0}%`]
+      ];
+
+      autoTable(doc, {
+        startY: 65,
+        head: [summaryTableData[0]],
+        body: summaryTableData.slice(1),
+        theme: 'striped',
+        headStyles: { fillColor: [38, 92, 50], fontSize: 10 }, // Library Gold/Amber
+        margin: { left: 14 },
+        tableWidth: 100,
+        styles: { fontSize: 9, cellPadding: 3 }
+      });
+
+      // Detailed Visit Logs Section
+      doc.setTextColor(26, 54, 93);
+      doc.setFontSize(16);
+      doc.text("Detailed Access History", 14, (doc as any).lastAutoTable.finalY + 15);
+      
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 22,
+        head: [['Patron Name', 'College/Office', 'Date', 'Time', 'Purpose', 'Type']],
+        body: filteredLogs.map(log => [
+          log.visitorName,
+          log.college,
+          log.date,
+          log.time,
+          log.purpose,
+          log.isEmployee ? 'FACULTY' : 'STUDENT'
+        ]),
+        headStyles: { fillColor: [26, 54, 93], fontSize: 9 },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        styles: { fontSize: 8, cellPadding: 2.5 },
+        margin: { bottom: 20 }
+      });
+
+      // Footer
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Page ${i} of ${pageCount} - NEU Library System Confidential Archive`, 105, 290, { align: "center" });
+      }
+
+      doc.save(`neu_library_archive_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+      
+      toast({
+        title: "Archive Exported",
+        description: "Institutional PDF report has been generated successfully.",
+      });
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      toast({
+        title: "Export Failed",
+        description: "An error occurred while generating the PDF archive.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+      setIsExporting(false);
+    }
   };
 
   if (!isLoaded || !mounted) return null;
@@ -119,9 +207,23 @@ export default function AdminDashboard() {
               <SelectItem value="month">Monthly Overview</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="default" onClick={generateReport} className="bg-primary hover:bg-primary/90 font-bold">
-            <Download className="w-4 h-4 mr-2" />
-            Export Archive
+          <Button 
+            variant="default" 
+            onClick={generateReport} 
+            disabled={isExporting}
+            className="bg-primary hover:bg-primary/90 font-bold min-w-[140px]"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Export Archive
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -266,4 +368,8 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
+}
+
+function setIsProcessing(arg0: boolean) {
+  throw new Error("Function not implemented.");
 }
