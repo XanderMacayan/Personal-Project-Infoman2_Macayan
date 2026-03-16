@@ -1,0 +1,151 @@
+{
+  "entities": {
+    "NEUUser": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NEUUser",
+      "type": "object",
+      "description": "Represents a user associated with NEU, which can be a student, faculty member, or staff. This entity holds profile information and defines their role and access status.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the NEUUser entity. This ID can be used to link to an external authentication system."
+        },
+        "rfidId": {
+          "type": "string",
+          "description": "The unique RFID identifier from the NEU School ID, used for tap-in entry. (Optional, as users can also log in via institutional email)."
+        },
+        "institutionalEmail": {
+          "type": "string",
+          "description": "The Google-based institutional email address of the user, used for entry if RFID is not used. (Optional, as users can also log in via RFID).",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the NEU user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the NEU user."
+        },
+        "collegeOrOffice": {
+          "type": "string",
+          "description": "The academic college or administrative office the user belongs to within NEU."
+        },
+        "isEmployee": {
+          "type": "boolean",
+          "description": "A flag indicating whether the user is an employee (faculty or staff) or a student. (True for employee, False for student)."
+        },
+        "isBlocked": {
+          "type": "boolean",
+          "description": "A flag indicating whether an administrator has blocked this user from entering the library. (True if blocked, False otherwise)."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user within the application, determining their access level (e.g., 'Admin', 'Visitor')."
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "collegeOrOffice",
+        "isEmployee",
+        "isBlocked",
+        "role"
+      ]
+    },
+    "VisitLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VisitLog",
+      "type": "object",
+      "description": "Records each individual visit entry by an NEU user into the library, including the timestamp and purpose of the visit.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the VisitLog entry."
+        },
+        "visitorId": {
+          "type": "string",
+          "description": "Reference to the NEUUser who made this visit. (Relationship: NEUUser 1:N VisitLog)"
+        },
+        "entryDateTime": {
+          "type": "string",
+          "description": "The date and time when the visitor entered the library.",
+          "format": "date-time"
+        },
+        "purposeOfVisit": {
+          "type": "string",
+          "description": "The primary reason for the visitor's entry, selected from pre-defined options.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "visitorId",
+        "entryDateTime",
+        "purposeOfVisit"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "NEUUser",
+          "schema": {
+            "$ref": "#/backend/entities/NEUUser"
+          },
+          "description": "Stores individual user profiles. Users can read their own profile, and admins can manage (read/update 'isBlocked' and 'role') all profiles. The 'id' field of NEUUser must match the document ID '{userId}'.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique Firebase Authentication UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "AdminRole",
+          "schema": {
+            "$ref": "#/backend/entities/NEUUser"
+          },
+          "description": "A sentinel collection to define administrative users. The mere existence of a document at this path signifies that the '{userId}' is an administrator. This enables robust, DBAC-compliant role management without custom claims. The document content itself can be minimal or empty, but the entity is logically linked to NEUUser.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique Firebase Authentication UID of the user who has an admin role."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/visitLogs/{visitLogId}",
+        "definition": {
+          "entityName": "VisitLog",
+          "schema": {
+            "$ref": "#/backend/entities/VisitLog"
+          },
+          "description": "Records each visit entry into the library. This is a top-level collection to support global admin queries without hierarchical dependencies. Includes denormalized 'visitorFirstName', 'visitorLastName', 'visitorCollegeOrOffice', and 'visitorIsEmployee' fields from the NEUUser profile to enable efficient and secure filtering by admins for QAPs (Query as Authorization Primitives) without requiring 'get()' calls in security rules.",
+          "params": [
+            {
+              "name": "visitLogId",
+              "description": "The unique identifier for a specific library visit log entry."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The proposed Firestore structure prioritizes secure, scalable, and debuggable access control by strictly adhering to the core design principles and mandates. Authorization Independence is achieved primarily through structural segregation and strategic denormalization.\n\n1.  **Authorization Independence & Structural Segregation:**\n    *   **User Profiles (`/users/{userId}`):** Each user's profile is stored in a top-level collection. Ownership for reading and partial updating of one's own profile is based directly on `request.auth.uid` matching the `{userId}` wildcard. This eliminates the need for hierarchical `get()` calls in rules for user-specific access. Admin access to all user profiles will be granted based on the `roles_admin` collection, again avoiding `get()` calls within the `/users` rules.\n    *   **Admin Roles (`/roles_admin/{userId}`):** A dedicated, top-level collection `/roles_admin` stores documents whose existence signifies that `userId` is an administrator. This is the cornerstone of DBAC (Database-Backed Access Control) and exemplifies the 'Existence over Content' principle. Authorization checks simply involve `exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))`, which is atomic and independent, fulfilling the Authorization Independence mandate. It also prevents complex custom claims logic.\n    *   **Visit Logs (`/visitLogs/{visitLogId}`):** Visit logs are stored in a top-level collection. This is crucial for **QAPs (Queries as Authorization Primitives)**. If `VisitLog` records were nested under users (e.g., `/users/{userId}/visitLogs/{visitLogId}`), performing global queries for admin dashboards (e.g., 'all visits today', 'visits filtered by college') would be extremely difficult to secure and efficient to implement without breaking security rules (as `list` operations often struggle with `get()` calls for parent documents).\n\n2.  **Denormalization for QAPs and Authorization Independence in `VisitLog`:**\n    *   To enable efficient and secure filtering for the Admin Dashboard (e.g., by 'college' or 'isEmployee' status) on the `visitLogs` collection, key attributes from the `NEUUser` entity (`collegeOrOffice`, `isEmployee`, `firstName`, `lastName`) are denormalized and stored directly within each `VisitLog` document upon creation. This means an admin can execute a `list` query on `/visitLogs` with filters like `where('visitorCollegeOrOffice', '==', 'Engineering')` or `where('visitorIsEmployee', '==', true)` without the Firestore security rules needing to perform costly or insecure `get()` operations on the related `NEUUser` document for each log entry. This is a direct application of Mandate A, ensuring that the authorization context (or data required for filtering authorization) is present on the document being accessed, thus preserving Authorization Independence and enabling robust `list` queries.\n\n3.  **Clarity of Intent and Predictability:** Semantic naming (`users`, `roles_admin`, `visitLogs`, `{userId}`, `{visitLogId}`) is used throughout. Fields like `isBlocked` and `role` are explicit. The structure clearly separates user profiles from administrative roles and from event logs, each with distinct, homogeneous security postures, simplifying security rule definition and debugging."
+  }
+}
