@@ -54,9 +54,13 @@ export function useLibraryStore() {
           });
         }
       } else {
+        // Only attempt to sync if we have a user (even anonymous)
+        if (!user) return;
+        
         // Logic to ensure names are synchronized for test accounts
         MOCK_USERS.forEach(mockUser => {
           const existing = visitors.find(v => v.id === mockUser.id);
+          // Only sync if name changed and we avoid spamming updates
           if (existing && existing.name !== mockUser.name) {
             const docRef = doc(firestore, 'users', mockUser.id);
             updateDocumentNonBlocking(docRef, { name: mockUser.name });
@@ -65,7 +69,7 @@ export function useLibraryStore() {
       }
     }
     checkAndSeed();
-  }, [firestore, visitors, isVisitorsLoading]);
+  }, [firestore, visitors, isVisitorsLoading, user]);
 
   const isLoaded = !isAdminCheckLoading && !isVisitorsLoading && (!isAdmin || !isLogsLoading);
 

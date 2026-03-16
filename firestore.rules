@@ -9,28 +9,18 @@ service cloud.firestore {
      * This ruleset implements a robust Role-Based Access Control (RBAC) model using 
      * Database-Backed Access Control (DBAC). It distinguishes between regular users 
      * and administrators via a sentinel collection strategy.
-     *
-     * DATA STRUCTURE:
-     * - /users/{userId}: Profiles for students and staff.
-     * - /roles_admin/{userId}: A sentinel collection where the existence of a document 
-     *   grants administrative privileges to the corresponding UID.
-     * - /visitLogs/{visitLogId}: Flat collection of library entries, optimized for 
-     *   admin dashboard queries via denormalization.
      */
 
     // --- Helper Functions ---
 
-    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the authenticated user's UID matches the provided ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if the user is a registered administrator via the sentinel collection. */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
@@ -39,7 +29,6 @@ service cloud.firestore {
 
     /**
      * @description Rules for the admin sentinel collection.
-     * Allows users to manage their own status for this prototype's role-switching mechanism.
      */
     match /roles_admin/{userId} {
       allow get, list: if isSignedIn();
@@ -48,14 +37,14 @@ service cloud.firestore {
 
     /**
      * @description Manages user profiles. 
-     * Identification terminal requires listing to find users by email/RFID.
+     * Updated to allow name synchronization during the prototype phase while protecting the 'isBlocked' status.
      */
     match /users/{userId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
       
-      allow create: if isSignedIn() && request.resource.data.id == userId;
-      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.isBlocked == resource.data.isBlocked);
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && request.resource.data.isBlocked == resource.data.isBlocked);
       allow delete: if isAdmin();
     }
 
