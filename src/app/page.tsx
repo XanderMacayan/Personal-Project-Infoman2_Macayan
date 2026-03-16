@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BookOpen, UserCheck, Mail, ScanFace, Lock, Quote, Loader2 } from "lucide-react";
+import { BookOpen, UserCheck, Mail, ScanFace, Lock, Quote, Loader2, ShieldCheck, LayoutDashboard, Users } from "lucide-react";
 import { PURPOSES, LibraryVisitor } from "@/lib/mock-data";
 import { useLibraryStore } from "@/hooks/use-library-store";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,7 @@ export default function VisitorTerminal() {
   const auth = useAuth();
   const { addLog, visitors, isLoaded, claimAdminStatus, revokeAdminStatus } = useLibraryStore();
   
-  const [step, setStep] = useState<"identify" | "welcome">("identify");
+  const [step, setStep] = useState<"identify" | "role-select" | "welcome">("identify");
   const [email, setEmail] = useState("");
   const [selectedVisitor, setSelectedVisitor] = useState<LibraryVisitor | null>(null);
   const [selectedPurpose, setSelectedPurpose] = useState("");
@@ -48,7 +48,7 @@ export default function VisitorTerminal() {
     e.preventDefault();
     setIsProcessing(true);
     
-    // Small timeout to simulate identity check
+    // Simulate identity check with institutional database
     setTimeout(() => {
       const visitor = visitors.find(v => v.email.toLowerCase() === email.toLowerCase());
       
@@ -56,23 +56,25 @@ export default function VisitorTerminal() {
         if (visitor.isBlocked) {
           toast({
             title: "Access Denied",
-            description: "Your access to the library has been temporarily restricted. Please contact the librarian.",
+            description: "Your access to the library has been restricted. Please contact the office.",
             variant: "destructive"
           });
           setIsProcessing(false);
           return;
         }
 
-        // Role Management: Prototype convenience
-        if (visitor.email === "admin@neu.edu.ph") {
-          claimAdminStatus();
-        } else {
-          // Explicitly ensure non-admin users don't inherit admin status from a previous session
-          revokeAdminStatus();
-        }
-
         setSelectedVisitor(visitor);
-        setStep("welcome");
+
+        // Conditional role routing for specific account
+        if (visitor.email === "jcesperanza@neu.edu.ph") {
+          setStep("role-select");
+        } else if (visitor.email === "admin@neu.edu.ph") {
+          claimAdminStatus();
+          setStep("welcome");
+        } else {
+          revokeAdminStatus();
+          setStep("welcome");
+        }
       } else {
         toast({
           title: "Identification Failed",
@@ -84,20 +86,39 @@ export default function VisitorTerminal() {
     }, 600);
   };
 
+  const handleRoleChoice = (role: "admin" | "student") => {
+    if (role === "admin") {
+      claimAdminStatus();
+      toast({
+        title: "Administrative Mode",
+        description: "Librarian privileges granted for this session.",
+      });
+    } else {
+      revokeAdminStatus();
+      toast({
+        title: "Student Mode",
+        description: "Accessing terminal as a regular patron.",
+      });
+    }
+    setStep("welcome");
+  };
+
   const handleRfidSimulate = () => {
     const available = visitors.filter(v => !v.isBlocked);
     if (available.length === 0) return;
     const randomVisitor = available[Math.floor(Math.random() * available.length)];
     
-    // Ensure simulated identity check handles roles
-    if (randomVisitor.email === "admin@neu.edu.ph") {
+    setSelectedVisitor(randomVisitor);
+
+    if (randomVisitor.email === "jcesperanza@neu.edu.ph") {
+      setStep("role-select");
+    } else if (randomVisitor.email === "admin@neu.edu.ph") {
       claimAdminStatus();
+      setStep("welcome");
     } else {
       revokeAdminStatus();
+      setStep("welcome");
     }
-    
-    setSelectedVisitor(randomVisitor);
-    setStep("welcome");
   };
 
   const handleCompleteEntry = () => {
@@ -123,7 +144,7 @@ export default function VisitorTerminal() {
 
       toast({
         title: "Entry Recorded",
-        description: `Welcome to the Sanctuary of Knowledge, ${selectedVisitor.name.split(' ')[0]}!`,
+        description: `Welcome back, ${selectedVisitor.name.split(' ')[0]}!`,
       });
 
       setStep("identify");
@@ -175,7 +196,7 @@ export default function VisitorTerminal() {
           </div>
         </div>
 
-        {step === "identify" ? (
+        {step === "identify" && (
           <div className="space-y-6">
             <Card className="border-none shadow-xl border-t-4 border-t-accent bg-white/90 backdrop-blur-md">
               <CardHeader className="text-center pb-2">
@@ -239,7 +260,49 @@ export default function VisitorTerminal() {
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {step === "role-select" && (
+          <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-md animate-in zoom-in-95 duration-300">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <ShieldCheck className="w-10 h-10 text-primary" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-primary">Access Mode</CardTitle>
+              <CardDescription className="text-base">
+                Select how you want to access the library system.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="grid grid-cols-1 gap-4">
+                <Button 
+                  className="h-20 text-lg font-bold flex flex-col items-center justify-center gap-1 bg-primary hover:bg-primary/90 rounded-xl"
+                  onClick={() => handleRoleChoice("admin")}
+                >
+                  <LayoutDashboard className="w-6 h-6" />
+                  <span>Librarian Access</span>
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="h-20 text-lg font-bold flex flex-col items-center justify-center gap-1 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 text-primary rounded-xl"
+                  onClick={() => handleRoleChoice("student")}
+                >
+                  <Users className="w-6 h-6" />
+                  <span>Student Terminal</span>
+                </Button>
+              </div>
+              <Button 
+                variant="ghost" 
+                className="w-full h-12 font-bold rounded-xl" 
+                onClick={() => setStep("identify")}
+              >
+                Go Back
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {step === "welcome" && (
           <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-md animate-in zoom-in-95 duration-300">
             <CardHeader className="text-center pb-2">
               <div className="mx-auto w-24 h-24 rounded-full border-4 border-accent/20 p-1 mb-4">
@@ -289,7 +352,7 @@ export default function VisitorTerminal() {
                   className="flex-1 h-12 font-bold rounded-xl"
                   onClick={() => setStep("identify")}
                 >
-                  Go Back
+                  Exit
                 </Button>
                 <Button 
                   className="flex-[2] h-12 bg-primary hover:bg-primary/95 text-lg font-bold rounded-xl shadow-xl active:scale-95 transition-transform"
