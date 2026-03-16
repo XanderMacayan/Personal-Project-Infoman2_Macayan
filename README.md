@@ -8,7 +8,7 @@ Link for website: https://personal-project-infoman2-macayan.vercel.app
 <br><strong>Password for Admin Dashboard: admin123</strong>
 <br><strong>Admin Access</strong>
 
-<br>Jeremias C. Esperanza (jcesperanza@neu.edu.ph) - Prof (Student/Admin)  
+Jeremias C. Esperanza (jcesperanza@neu.edu.ph) - Prof (Student/Admin)  
 <br>Victor Crudo (vcrudo@neu.edu.ph) - IT Support (Librarian role available)
 <br>Anna Bautista (abautista@neu.edu.ph) - Library Staff (Librarian role available)
 
