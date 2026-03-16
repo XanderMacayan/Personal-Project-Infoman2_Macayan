@@ -5,19 +5,19 @@ An institutional-grade visitor monitoring and scholarly traffic analytics platfo
 Link for website: https://personal-project-infoman2-macayan.vercel.app
 
 <br>
-admin123
+<br>admin123
 
-Admin Access
+<br>Admin Access
 
-Jeremias C. Esperanza (jcesperanza@neu.edu.ph) - Prof (Student/Admin)  
-Victor Crudo (vcrudo@neu.edu.ph) - IT Support (Librarian role available)
-Anna Bautista (abautista@neu.edu.ph) - Library Staff (Librarian role available)
+<br>Jeremias C. Esperanza (jcesperanza@neu.edu.ph) - Prof (Student/Admin)  
+<br>Victor Crudo (vcrudo@neu.edu.ph) - IT Support (Librarian role available)
+<br>Anna Bautista (abautista@neu.edu.ph) - Library Staff (Librarian role available)
 
-Student
+<br>Student
 
-Maria Garcia (mgarcia@neu.edu.ph) - Student, Engineering
-Luis Tan (ltan@neu.edu.ph) - Student, Business
-Rose Reyes (rreyes@neu.edu.ph) - Student, Nursing
+<br>Maria Garcia (mgarcia@neu.edu.ph) - Student, Engineering
+<br>Luis Tan (ltan@neu.edu.ph) - Student, Business
+<br>Rose Reyes (rreyes@neu.edu.ph) - Student, Nursing
 
 
 ## 🚀 Features
