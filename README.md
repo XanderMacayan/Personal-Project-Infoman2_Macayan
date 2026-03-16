@@ -2,6 +2,24 @@
 
 An institutional-grade visitor monitoring and scholarly traffic analytics platform designed for the New Era University (NEU) Library. This system provides a seamless entry terminal for patrons and a robust administrative console for library staff.
 
+Link for website: https://personal-project-infoman2-macayan.vercel.app
+
+<br>
+admin123
+
+Admin Access
+
+Jeremias C. Esperanza (jcesperanza@neu.edu.ph) - Prof (Student/Admin)  
+Victor Crudo (vcrudo@neu.edu.ph) - IT Support (Librarian role available)
+Anna Bautista (abautista@neu.edu.ph) - Library Staff (Librarian role available)
+
+Student
+
+Maria Garcia (mgarcia@neu.edu.ph) - Student, Engineering
+Luis Tan (ltan@neu.edu.ph) - Student, Business
+Rose Reyes (rreyes@neu.edu.ph) - Student, Nursing
+
+
 ## 🚀 Features
 
 ### Visitor Terminal (Patron Interface)
