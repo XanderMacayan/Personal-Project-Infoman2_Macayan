@@ -39,10 +39,11 @@ service cloud.firestore {
 
     /**
      * @description Rules for the admin sentinel collection.
+     * Allows users to manage their own status for this prototype's role-switching mechanism.
      */
     match /roles_admin/{userId} {
-      allow get, list: if isSignedIn(); // Allow check for admin status
-      allow create, update, delete: if false; // Role assignment should be manual or via cloud function for security
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isOwner(userId);
     }
 
     /**
@@ -51,7 +52,7 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get: if isSignedIn();
-      allow list: if isSignedIn(); // Terminal needs list to simulate/find users client-side
+      allow list: if isSignedIn();
       
       allow create: if isSignedIn() && request.resource.data.id == userId;
       allow update: if isAdmin() || (isOwner(userId) && request.resource.data.isBlocked == resource.data.isBlocked);
@@ -62,15 +63,9 @@ service cloud.firestore {
      * @description Records of library visits.
      */
     match /visitLogs/{visitLogId} {
-      // Admins can see everything. Users can see their own logs if they have the ID.
       allow get: if isAdmin() || (isSignedIn() && resource.data.visitorId == request.auth.uid);
-      
-      // Only admins can list visit logs for the dashboard.
       allow list: if isAdmin();
-      
-      // Anyone signed in can create a log entry for themselves.
       allow create: if isSignedIn(); 
-      
       allow update, delete: if isAdmin();
     }
   }
