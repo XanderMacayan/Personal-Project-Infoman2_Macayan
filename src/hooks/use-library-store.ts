@@ -1,8 +1,8 @@
 
 "use client"
 
-import { useEffect } from 'react';
-import { collection, query, orderBy, doc, getDocs, limit } from 'firebase/firestore';
+import { useEffect, useMemo } from 'react';
+import { collection, query, orderBy, doc, getDocs, limit, where } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useUser, useMemoFirebase } from '@/firebase';
 import { VisitorLogEntry, LibraryVisitor, MOCK_USERS } from '@/lib/mock-data';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -15,6 +15,7 @@ export function useLibraryStore(options: UseLibraryStoreOptions = {}) {
   const firestore = useFirestore();
   const { user } = useUser();
 
+  // Admin Sentinel: Check if the current user UID exists in the roles_admin collection
   const adminSentinelRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'roles_admin', user.uid);
@@ -23,12 +24,13 @@ export function useLibraryStore(options: UseLibraryStoreOptions = {}) {
   const { data: adminRole, isLoading: isAdminCheckLoading } = useDoc(adminSentinelRef);
   const isAdmin = !!adminRole;
 
-  // Only fetch visit logs if explicitly requested and the user is a confirmed admin
+  // Fetch visit logs only for admins when explicitly requested (e.g., Dashboard)
   const logsQuery = useMemoFirebase(() => {
     if (!firestore || !isAdmin || !options.fetchLogs) return null;
     return query(collection(firestore, 'visitLogs'), orderBy('entryDateTime', 'desc'));
   }, [firestore, isAdmin, options.fetchLogs]);
 
+  // Fetch all users for management
   const visitorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'users');
@@ -37,33 +39,22 @@ export function useLibraryStore(options: UseLibraryStoreOptions = {}) {
   const { data: logs, isLoading: isLogsLoading } = useCollection<VisitorLogEntry>(logsQuery);
   const { data: visitors, isLoading: isVisitorsLoading } = useCollection<LibraryVisitor>(visitorsQuery);
 
+  // Database Seeding: Ensure mock users exist in Firestore on first load
   useEffect(() => {
     async function checkAndSeed() {
-      if (!firestore || isVisitorsLoading) return;
+      if (!firestore || isVisitorsLoading || (visitors && visitors.length > 0)) return;
       
       const usersCol = collection(firestore, 'users');
+      const snapshot = await getDocs(query(usersCol, limit(1)));
       
-      if (!visitors || visitors.length === 0) {
-        const snapshot = await getDocs(query(usersCol, limit(1)));
-        if (snapshot.empty) {
-          MOCK_USERS.forEach((mockUser) => {
-            const docRef = doc(firestore, 'users', mockUser.id);
-            setDocumentNonBlocking(docRef, {
-              ...mockUser,
-              isBlocked: false,
-              role: mockUser.isEmployee ? 'Admin' : 'Visitor'
-            }, { merge: true });
-          });
-        }
-      } else {
-        // Sync names if they differ from institutional records
-        MOCK_USERS.forEach(mockUser => {
-          const existing = visitors.find(v => v.id === mockUser.id);
-          if (existing && existing.name !== mockUser.name) {
-            const docRef = doc(firestore, 'users', mockUser.id);
-            // Rules allow name updates for signed-in users
-            updateDocumentNonBlocking(docRef, { name: mockUser.name });
-          }
+      if (snapshot.empty) {
+        MOCK_USERS.forEach((mockUser) => {
+          const docRef = doc(firestore, 'users', mockUser.id);
+          setDocumentNonBlocking(docRef, {
+            ...mockUser,
+            isBlocked: false,
+            role: mockUser.isEmployee ? 'Admin' : 'Visitor'
+          }, { merge: true });
         });
       }
     }
@@ -94,12 +85,14 @@ export function useLibraryStore(options: UseLibraryStoreOptions = {}) {
   const claimAdminStatus = () => {
     if (!firestore || !user) return;
     const adminRef = doc(firestore, 'roles_admin', user.uid);
+    // Setting this document makes the user an admin according to our Security Rules
     setDocumentNonBlocking(adminRef, { grantedAt: new Date().toISOString() }, { merge: true });
   };
 
   const revokeAdminStatus = () => {
     if (!firestore || !user) return;
     const adminRef = doc(firestore, 'roles_admin', user.uid);
+    // Deleting this document immediately revokes admin privileges
     deleteDocumentNonBlocking(adminRef);
   };
 
