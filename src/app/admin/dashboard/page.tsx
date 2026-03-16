@@ -10,11 +10,11 @@ import {
 import { 
   Users, GraduationCap, Briefcase, BookOpen, Download, 
   Calendar, Activity, Loader2, ArrowUpRight, TrendingUp,
-  Clock, MapPin
+  Clock, MapPin, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, subDays, isWithinInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -272,7 +272,7 @@ export default function AdminDashboard() {
             <CardDescription className="font-medium">Primary motivation for library use.</CardDescription>
           </CardHeader>
           <CardContent className="h-[400px] flex flex-col justify-center">
-            <ResponsiveContainer width="100%" height="250">
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
                   data={purposeData}
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                     <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider truncate max-w-[120px]">{p.name}</span>
                   </div>
-                  <span className="text-xs font-black text-primary">{((p.value / stats.total) * 100).toFixed(0)}%</span>
+                  <span className="text-xs font-black text-primary">{((p.value / (stats.total || 1)) * 100).toFixed(0)}%</span>
                 </div>
               ))}
             </div>
