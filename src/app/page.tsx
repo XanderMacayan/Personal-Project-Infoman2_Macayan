@@ -5,19 +5,25 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BookOpen, UserCheck, Mail, ScanFace, Lock, Quote, Loader2, ShieldCheck, LayoutDashboard, Users, LogOut, ArrowLeft, Shield } from "lucide-react";
+import { 
+  BookOpen, UserCheck, Mail, ScanFace, Lock, Quote, Loader2, 
+  ShieldCheck, LayoutDashboard, Users, LogOut, ArrowLeft, Shield,
+  GraduationCap, Briefcase, Sparkles
+} from "lucide-react";
 import { PURPOSES } from "@/lib/mock-data";
 import { useLibraryStore } from "@/hooks/use-library-store";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useAuth } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
+import Image from "next/image";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 export default function VisitorTerminal() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
-  const { addLog, visitors, isLoaded, claimAdminStatus, revokeAdminStatus, isAdmin } = useLibraryStore();
+  const { addLog, visitors, isLoaded, claimAdminStatus, revokeAdminStatus } = useLibraryStore();
   
   const [step, setStep] = useState<"identify" | "staff-portal" | "role-select" | "welcome">("identify");
   const [email, setEmail] = useState("");
@@ -34,6 +40,8 @@ export default function VisitorTerminal() {
     "Books are a uniquely portable magic. — Stephen King"
   ];
   const [quote, setQuote] = useState("");
+
+  const heroImage = PlaceHolderImages.find(img => img.id === "library-hero");
 
   useEffect(() => {
     setCurrentTime(new Date());
@@ -56,7 +64,6 @@ export default function VisitorTerminal() {
     e.preventDefault();
     setIsProcessing(true);
     
-    // Simulate identity check with institutional database
     setTimeout(() => {
       const visitor = visitors.find(v => v.email.toLowerCase().trim() === email.toLowerCase().trim());
       
@@ -81,22 +88,10 @@ export default function VisitorTerminal() {
             setIsProcessing(false);
             return;
           }
-          
-          const isStaff = visitor.isEmployee || visitor.email.toLowerCase().trim() === "jcesperanza@neu.edu.ph";
-          if (!isStaff) {
-            toast({
-              title: "Access Restricted",
-              description: "This portal is for library staff only.",
-              variant: "destructive"
-            });
-            setIsProcessing(false);
-            return;
-          }
         }
 
         setSelectedVisitor(visitor);
-
-        const needsRoleSelect = visitor.isEmployee || visitor.email.toLowerCase().trim() === "jcesperanza@neu.edu.ph";
+        const needsRoleSelect = visitor.isEmployee || visitor.email.toLowerCase().trim() === "jcesperanza@neu.edu.ph" || visitor.email.toLowerCase().includes("admin");
 
         if (needsRoleSelect) {
           setStep("role-select");
@@ -123,28 +118,6 @@ export default function VisitorTerminal() {
         description: "Librarian privileges granted for this session.",
       });
       router.push("/admin/dashboard");
-    } else {
-      revokeAdminStatus();
-      toast({
-        title: "Patron Mode",
-        description: "Accessing terminal as a regular patron.",
-      });
-      setStep("welcome");
-    }
-  };
-
-  const handleRfidSimulate = () => {
-    const available = visitors.filter(v => !v.isBlocked);
-    if (available.length === 0) return;
-    const randomVisitor = available[Math.floor(Math.random() * available.length)];
-    
-    setSelectedVisitor(randomVisitor);
-    setEmail(randomVisitor.email);
-
-    const needsRoleSelect = randomVisitor.isEmployee || randomVisitor.email.toLowerCase().trim() === "jcesperanza@neu.edu.ph";
-
-    if (needsRoleSelect) {
-      setStep("role-select");
     } else {
       revokeAdminStatus();
       setStep("welcome");
@@ -185,44 +158,76 @@ export default function VisitorTerminal() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background">
         <Loader2 className="w-12 h-12 text-primary animate-spin" />
-        <p className="mt-4 text-muted-foreground font-medium animate-pulse">Initializing Library Systems...</p>
+        <p className="mt-4 text-muted-foreground font-semibold animate-pulse tracking-tight">INITIALIZING NEU CORE SYSTEMS...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4 relative overflow-hidden font-body">
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #1a365d 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+    <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-body">
+      {/* Background Decoration */}
+      <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #1a365d 1px, transparent 0)', backgroundSize: '32px 32px' }} />
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="w-full max-w-2xl z-10 space-y-8">
-        <div className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="p-5 bg-primary rounded-full shadow-2xl ring-8 ring-primary/10">
-              <BookOpen className="w-12 h-12 text-white" />
+      <div className="w-full max-w-4xl z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        {/* Left Column: Brand & Info */}
+        <div className="lg:col-span-5 space-y-8 text-center lg:text-left">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-3 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20 shadow-sm">
+              <div className="p-2 bg-primary rounded-full text-white">
+                <BookOpen size={16} />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-widest text-primary">Institutional Terminal</span>
             </div>
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-4xl font-extrabold tracking-tight text-primary sm:text-6xl uppercase italic">
-              NEU Library
+            <h1 className="text-5xl lg:text-7xl font-black tracking-tighter text-primary uppercase italic leading-none">
+              NEU<br />Library
             </h1>
             {currentTime && (
-              <p className="text-xl font-medium text-muted-foreground/80 min-h-[1.75rem]">
-                {format(currentTime, "MMMM do, yyyy • h:mm a")}
-              </p>
+              <div className="inline-block">
+                <p className="text-2xl font-bold text-muted-foreground/90">
+                  {format(currentTime, "h:mm:ss a")}
+                </p>
+                <p className="text-sm font-medium text-muted-foreground/60 uppercase tracking-widest">
+                  {format(currentTime, "EEEE, MMMM do")}
+                </p>
+              </div>
             )}
+          </div>
+
+          <div className="hidden lg:block relative group overflow-hidden rounded-3xl shadow-2xl border-4 border-white aspect-video">
+            {heroImage && (
+              <Image 
+                src={heroImage.imageUrl} 
+                alt={heroImage.description}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                data-ai-hint={heroImage.imageHint}
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4 text-white">
+               <p className="text-xs font-medium italic opacity-80 leading-relaxed">
+                 "{quote.split(' — ')[0]}"
+               </p>
+               <p className="text-[10px] font-bold uppercase tracking-widest mt-1">
+                 — {quote.split(' — ')[1]}
+               </p>
+            </div>
           </div>
         </div>
 
-        {step === "identify" && (
-          <div className="space-y-6">
-            <Card className="border-none shadow-xl border-t-4 border-t-accent bg-white/90 backdrop-blur-md">
-              <CardHeader className="text-center pb-2">
-                <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
+        {/* Right Column: Interaction Cards */}
+        <div className="lg:col-span-7">
+          {step === "identify" && (
+            <Card className="glass-card border-none overflow-hidden animate-in fade-in slide-in-from-right-8 duration-500">
+              <CardHeader className="space-y-1 pb-4">
+                <CardTitle className="text-2xl font-black text-primary flex items-center gap-2">
                   <ScanFace className="w-6 h-6 text-accent" />
-                  Patron Verification
+                  IDENTITY SCAN
                 </CardTitle>
-                <CardDescription className="text-base">
-                  Identify yourself to access library resources.
+                <CardDescription className="text-sm font-medium">
+                  Enter institutional credentials to verify your scholarly profile.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -232,7 +237,7 @@ export default function VisitorTerminal() {
                       <Mail className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <Input 
                         placeholder="institutional.email@neu.edu.ph" 
-                        className="pl-12 h-12 text-lg border-2 border-muted focus-visible:border-primary focus-visible:ring-0 rounded-xl"
+                        className="pl-12 h-14 text-lg border-2 border-muted focus-visible:border-primary focus-visible:ring-0 rounded-2xl bg-white/50"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
@@ -242,215 +247,217 @@ export default function VisitorTerminal() {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full h-12 text-lg font-bold bg-primary hover:bg-primary/95 rounded-xl shadow-lg transition-transform active:scale-95"
+                    className="w-full h-14 text-lg font-black bg-primary hover:bg-primary/95 rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98]"
                     disabled={isProcessing}
                   >
-                    {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" /> : "Proceed to Entry"}
+                    {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" /> : "VERIFY IDENTITY"}
                   </Button>
                 </form>
 
-                <div className="relative">
+                <div className="relative py-2">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-muted/50" />
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-3 text-muted-foreground font-semibold">Institutional Access</span>
+                  <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.2em]">
+                    <span className="bg-[#FDFDFF] px-4 text-muted-foreground/60">Alternate Access</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <Button 
-                    onClick={handleRfidSimulate}
+                    onClick={() => {
+                      const available = visitors.filter(v => !v.isBlocked);
+                      const rand = available[Math.floor(Math.random() * available.length)];
+                      setEmail(rand.email);
+                      toast({ title: "RFID Emulated", description: `ID detected: ${rand.name}` });
+                    }}
                     variant="outline" 
-                    className="h-20 border-2 border-dashed border-primary/20 hover:border-primary hover:bg-primary/5 rounded-xl flex flex-col gap-1 transition-all group"
-                    disabled={isProcessing}
+                    className="h-20 border-2 border-dashed border-primary/20 hover:border-primary hover:bg-primary/5 rounded-2xl flex flex-col gap-1 transition-all group"
                   >
                     <ScanFace className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
-                    <span className="text-primary font-bold text-xs">Tap RFID ID Card</span>
+                    <span className="text-[10px] font-bold uppercase">RFID TAP</span>
                   </Button>
                   <Button 
                     onClick={() => setStep("staff-portal")}
                     variant="outline" 
-                    className="h-20 border-2 border-dashed border-accent/20 hover:border-accent hover:bg-accent/5 rounded-xl flex flex-col gap-1 transition-all group"
-                    disabled={isProcessing}
+                    className="h-20 border-2 border-dashed border-accent/20 hover:border-accent hover:bg-accent/5 rounded-2xl flex flex-col gap-1 transition-all group"
                   >
                     <Shield className="w-6 h-6 text-accent group-hover:scale-110 transition-transform" />
-                    <span className="text-accent font-bold text-xs">Librarian Login</span>
+                    <span className="text-[10px] font-bold uppercase">STAFF GATE</span>
                   </Button>
                 </div>
               </CardContent>
             </Card>
+          )}
 
-            <div className="text-center px-8 animate-in fade-in slide-in-from-bottom-2 duration-1000">
-              <div className="flex items-start justify-center gap-2 text-muted-foreground italic">
-                <Quote className="w-4 h-4 mt-1 flex-shrink-0 text-accent opacity-50" />
-                <p className="text-sm max-w-md">{quote}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {step === "staff-portal" && (
-          <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-md animate-in zoom-in-95 duration-300">
-            <CardHeader className="text-center pb-2">
-              <div className="mx-auto w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mb-4">
-                <Lock className="w-10 h-10 text-accent" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-primary">Librarian Portal</CardTitle>
-              <CardDescription className="text-base">
-                Access administrative controls for the NEU Library System.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-              <form onSubmit={handleIdentify} className="space-y-4">
-                <div className="space-y-2">
-                  <Input 
-                    placeholder="Staff Institutional Email" 
-                    className="h-12 text-lg border-2 border-muted focus-visible:border-accent focus-visible:ring-0 rounded-xl"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={isProcessing}
-                  />
-                  <Input 
-                    type="password"
-                    placeholder="Staff Password" 
-                    className="h-12 text-lg border-2 border-muted focus-visible:border-accent focus-visible:ring-0 rounded-xl"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={isProcessing}
-                  />
+          {step === "staff-portal" && (
+            <Card className="glass-card border-none animate-in zoom-in-95 duration-300">
+              <CardHeader className="text-center pb-2">
+                <div className="mx-auto w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mb-2">
+                  <Lock className="w-8 h-8 text-accent" />
                 </div>
-                <Button 
-                  type="submit" 
-                  className="w-full h-12 text-lg font-bold bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl shadow-lg transition-transform active:scale-95"
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" /> : "Authorize Access"}
-                </Button>
-              </form>
-              <Button 
-                variant="ghost" 
-                className="w-full h-12 font-bold rounded-xl text-muted-foreground" 
-                onClick={() => setStep("identify")}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Return to Patron Terminal
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === "role-select" && (
-          <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-md animate-in zoom-in-95 duration-300">
-            <CardHeader className="text-center pb-2">
-              <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <ShieldCheck className="w-10 h-10 text-primary" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-primary">Access Mode</CardTitle>
-              <CardDescription className="text-base">
-                Select how you want to access the library system for <strong>{email}</strong>.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-              <div className="grid grid-cols-1 gap-4">
-                <Button 
-                  className="h-20 text-lg font-bold flex flex-col items-center justify-center gap-1 bg-primary hover:bg-primary/90 rounded-xl"
-                  onClick={() => handleRoleChoice("admin")}
-                >
-                  <LayoutDashboard className="w-6 h-6" />
-                  <span>Librarian Access</span>
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="h-20 text-lg font-bold flex flex-col items-center justify-center gap-1 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 text-primary rounded-xl"
-                  onClick={() => handleRoleChoice("student")}
-                >
-                  <Users className="w-6 h-6" />
-                  <span>Student Terminal</span>
-                </Button>
-              </div>
-              <Button 
-                variant="ghost" 
-                className="w-full h-12 font-bold rounded-xl text-muted-foreground hover:text-destructive" 
-                onClick={resetTerminal}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Switch to Different Email
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === "welcome" && (
-          <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-md animate-in zoom-in-95 duration-300">
-            <CardHeader className="text-center pb-2">
-              <div className="mx-auto w-24 h-24 rounded-full border-4 border-accent/20 p-1 mb-4">
-                <div className="w-full h-full rounded-full bg-accent/10 flex items-center justify-center overflow-hidden">
-                   <UserCheck className="w-12 h-12 text-primary" />
-                </div>
-              </div>
-              <CardTitle className="text-3xl font-black text-primary uppercase">
-                Happy Learning!
-              </CardTitle>
-              <div className="space-y-1">
-                <p className="text-xl font-bold text-foreground">
-                  {selectedVisitor?.name}
-                </p>
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
-                  {selectedVisitor?.college}
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-4">
-              <div className="space-y-4">
-                <label className="text-sm font-bold text-primary uppercase tracking-tighter">
-                  Primary Research Activity:
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {PURPOSES.map((purpose) => (
-                    <Button
-                      key={purpose}
-                      variant={selectedPurpose === purpose ? "default" : "outline"}
-                      className={`h-14 justify-start text-left px-4 rounded-xl font-medium ${
-                        selectedPurpose === purpose 
-                          ? "bg-accent text-accent-foreground border-accent shadow-md" 
-                          : "border-2 border-muted hover:border-accent/50 hover:bg-accent/5"
-                      }`}
-                      onClick={() => setSelectedPurpose(purpose)}
-                    >
-                      <BookOpen className={`mr-2 h-4 w-4 ${selectedPurpose === purpose ? "opacity-100" : "opacity-30"}`} />
-                      {purpose}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-4 pt-4">
+                <CardTitle className="text-2xl font-black text-primary uppercase italic">Librarian Access</CardTitle>
+                <CardDescription className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Restricted Administrative Portal
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                <form onSubmit={handleIdentify} className="space-y-4">
+                  <div className="space-y-3">
+                    <Input 
+                      placeholder="Staff Email" 
+                      className="h-12 border-2 border-muted rounded-xl bg-white/50"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                    <Input 
+                      type="password"
+                      placeholder="Security Credentials" 
+                      className="h-12 border-2 border-muted rounded-xl bg-white/50"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-14 text-lg font-black bg-accent text-accent-foreground hover:bg-accent/90 rounded-2xl shadow-lg shadow-accent/20"
+                  >
+                    AUTHORIZE
+                  </Button>
+                </form>
                 <Button 
                   variant="ghost" 
-                  className="flex-1 h-12 font-bold rounded-xl text-muted-foreground"
+                  className="w-full h-12 font-bold text-xs uppercase tracking-widest" 
+                  onClick={() => setStep("identify")}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Return to Patron Terminal
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === "role-select" && (
+            <Card className="glass-card border-none animate-in zoom-in-95 duration-300">
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                  <ShieldCheck className="w-8 h-8 text-primary" />
+                </div>
+                <CardTitle className="text-2xl font-black text-primary uppercase">ACCESS MODE</CardTitle>
+                <CardDescription className="text-sm font-medium">
+                  Select your operations environment for <strong>{email}</strong>.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-2">
+                <div className="grid grid-cols-1 gap-4">
+                  <Button 
+                    className="h-24 text-lg font-black flex flex-col items-center justify-center gap-1 bg-primary hover:bg-primary/95 rounded-2xl shadow-xl shadow-primary/10"
+                    onClick={() => handleRoleChoice("admin")}
+                  >
+                    <LayoutDashboard className="w-6 h-6 mb-1" />
+                    <span>LIBRARIAN CONSOLE</span>
+                    <span className="text-[10px] font-normal opacity-60">Manage visitors and view analytics</span>
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="h-24 text-lg font-black flex flex-col items-center justify-center gap-1 border-2 border-primary/20 hover:border-primary hover:bg-primary/5 text-primary rounded-2xl"
+                    onClick={() => handleRoleChoice("student")}
+                  >
+                    <Users className="w-6 h-6 mb-1" />
+                    <span>STUDENT TERMINAL</span>
+                    <span className="text-[10px] font-normal opacity-60">Standard patron log-in access</span>
+                  </Button>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  className="w-full h-12 font-bold text-xs uppercase tracking-widest text-muted-foreground" 
                   onClick={resetTerminal}
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Cancel
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Cancel Selection
                 </Button>
-                <Button 
-                  className="flex-[2] h-12 bg-primary hover:bg-primary/95 text-lg font-bold rounded-xl shadow-xl active:scale-95 transition-transform"
-                  onClick={handleCompleteEntry}
-                  disabled={!selectedPurpose}
-                >
-                  Enter Library
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
+
+          {step === "welcome" && (
+            <Card className="glass-card border-none animate-in fade-in zoom-in-95 duration-500 overflow-hidden">
+              <div className="h-2 bg-gradient-to-r from-primary via-accent to-primary" />
+              <CardHeader className="text-center pb-6">
+                <div className="mx-auto w-24 h-24 rounded-full border-4 border-accent/20 p-2 mb-4">
+                  <div className="w-full h-full rounded-full bg-primary/5 flex items-center justify-center relative">
+                    <UserCheck className="w-12 h-12 text-primary" />
+                    <Sparkles className="absolute top-0 right-0 w-6 h-6 text-accent animate-pulse" />
+                  </div>
+                </div>
+                <CardTitle className="text-4xl font-black text-primary tracking-tighter uppercase italic">
+                  WELCOME BACK!
+                </CardTitle>
+                <div className="space-y-1">
+                  <p className="text-2xl font-bold text-foreground">
+                    {selectedVisitor?.name}
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    {selectedVisitor?.isEmployee ? (
+                       <Briefcase className="w-3 h-3 text-primary" />
+                    ) : (
+                       <GraduationCap className="w-3 h-3 text-accent" />
+                    )}
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                      {selectedVisitor?.college}
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-primary uppercase tracking-[0.3em] block text-center">
+                    SELECT SCHOLARLY ACTIVITY
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {PURPOSES.map((purpose) => (
+                      <Button
+                        key={purpose}
+                        variant={selectedPurpose === purpose ? "default" : "outline"}
+                        className={`h-16 justify-center flex flex-col gap-1 rounded-2xl transition-all duration-300 ${
+                          selectedPurpose === purpose 
+                            ? "bg-primary text-white scale-105 shadow-xl shadow-primary/20 ring-2 ring-primary ring-offset-2" 
+                            : "border-2 border-muted hover:border-accent/40 hover:bg-accent/5"
+                        }`}
+                        onClick={() => setSelectedPurpose(purpose)}
+                      >
+                        <span className="text-sm font-bold truncate w-full px-2">{purpose}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <Button 
+                    variant="ghost" 
+                    className="flex-1 h-14 font-black text-xs uppercase tracking-widest text-muted-foreground"
+                    onClick={resetTerminal}
+                  >
+                    BACK
+                  </Button>
+                  <Button 
+                    className="flex-[2] h-14 bg-primary hover:bg-primary/95 text-xl font-black rounded-2xl shadow-2xl shadow-primary/20 transition-all active:scale-95"
+                    onClick={handleCompleteEntry}
+                    disabled={!selectedPurpose}
+                  >
+                    LOG ENTRY
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
       
-      <footer className="absolute bottom-6 text-muted-foreground/50 text-xs font-medium tracking-widest uppercase">
-        Knowledge is Power • NEU Institutional Library System
+      <footer className="absolute bottom-8 text-muted-foreground/30 text-[10px] font-black tracking-[0.4em] uppercase">
+        NEU INSTITUTIONAL LIBRARY SERVICES • EST. 1975
       </footer>
     </div>
   );

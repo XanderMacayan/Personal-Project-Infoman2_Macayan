@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%; /* Soft parchment white */
+    --background: 210 40% 98%; /* Lighter, cleaner background */
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
@@ -12,9 +12,9 @@
     --popover-foreground: 222 47% 11%;
     --primary: 221 45% 23%; /* Oxford Blue */
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 20% 90%;
+    --secondary: 210 20% 96%;
     --secondary-foreground: 221 45% 23%;
-    --muted: 210 20% 90%;
+    --muted: 210 20% 94%;
     --muted-foreground: 215 16% 47%;
     --accent: 38 92% 50%; /* Library Gold/Amber */
     --accent-foreground: 222 47% 11%;
@@ -25,10 +25,10 @@
     --ring: 221 45% 23%;
     --chart-1: 221 45% 23%;
     --chart-2: 38 92% 50%;
-    --chart-3: 142 71% 45%;
-    --chart-4: 199 89% 48%;
-    --chart-5: 271 91% 65%;
-    --radius: 0.5rem;
+    --chart-3: 222 47% 11%;
+    --chart-4: 215 16% 47%;
+    --chart-5: 210 20% 90%;
+    --radius: 0.75rem; /* Slightly more rounded for a modern feel */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 221 45% 23%;
@@ -68,4 +68,16 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
   }
+}
+
+.glass-card {
+  @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-2xl;
+}
+
+.institutional-gradient {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, #1e293b 100%);
+}
+
+.amber-glow {
+  box-shadow: 0 0 20px -5px hsl(var(--accent) / 0.4);
 }
