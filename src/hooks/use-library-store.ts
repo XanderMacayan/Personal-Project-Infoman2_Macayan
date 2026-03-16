@@ -1,10 +1,11 @@
+
 "use client"
 
 import { useMemo, useEffect } from 'react';
 import { collection, query, orderBy, doc, getDocs, limit } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useUser, useMemoFirebase } from '@/firebase';
 import { VisitorLogEntry, LibraryVisitor, MOCK_USERS } from '@/lib/mock-data';
-import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export function useLibraryStore() {
   const { firestore } = useFirestore() ? { firestore: useFirestore() } : { firestore: null };
@@ -82,12 +83,19 @@ export function useLibraryStore() {
     setDocumentNonBlocking(adminRef, { grantedAt: new Date().toISOString() }, { merge: true });
   };
 
+  const revokeAdminStatus = () => {
+    if (!firestore || !user) return;
+    const adminRef = doc(firestore, 'roles_admin', user.uid);
+    deleteDocumentNonBlocking(adminRef);
+  };
+
   return { 
     logs: logs || [], 
     visitors: visitors || [], 
     addLog, 
     toggleBlockVisitor, 
     claimAdminStatus,
+    revokeAdminStatus,
     isLoaded,
     isAdmin 
   };

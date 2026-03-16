@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react";
@@ -17,7 +18,7 @@ export default function VisitorTerminal() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
-  const { addLog, visitors, isLoaded, claimAdminStatus } = useLibraryStore();
+  const { addLog, visitors, isLoaded, claimAdminStatus, revokeAdminStatus } = useLibraryStore();
   
   const [step, setStep] = useState<"identify" | "welcome">("identify");
   const [email, setEmail] = useState("");
@@ -35,6 +36,7 @@ export default function VisitorTerminal() {
   const [quote, setQuote] = useState("");
 
   useEffect(() => {
+    // Prevent hydration mismatch by only setting values on client mount
     setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     setQuote(libraryQuotes[Math.floor(Math.random() * libraryQuotes.length)]);
@@ -61,9 +63,12 @@ export default function VisitorTerminal() {
           return;
         }
 
-        // Prototype convenience: if identifying as admin email, grant admin sentinel status
+        // Role Management: Prototype convenience
         if (visitor.email === "admin@neu.edu.ph") {
           claimAdminStatus();
+        } else {
+          // Explicitly ensure non-admin users don't inherit admin status from a previous session
+          revokeAdminStatus();
         }
 
         setSelectedVisitor(visitor);
@@ -83,6 +88,14 @@ export default function VisitorTerminal() {
     const available = visitors.filter(v => !v.isBlocked);
     if (available.length === 0) return;
     const randomVisitor = available[Math.floor(Math.random() * available.length)];
+    
+    // Ensure simulated identity check handles roles
+    if (randomVisitor.email === "admin@neu.edu.ph") {
+      claimAdminStatus();
+    } else {
+      revokeAdminStatus();
+    }
+    
     setSelectedVisitor(randomVisitor);
     setStep("welcome");
   };
