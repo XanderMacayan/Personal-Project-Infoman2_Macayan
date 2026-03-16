@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useLibraryStore } from "@/hooks/use-library-store";
 import { 
@@ -15,28 +16,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export default function AdminDashboard() {
   const { logs, isLoaded } = useLibraryStore();
   const [timeRange, setTimeRange] = useState("all");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const filteredLogs = useMemo(() => {
+    if (!mounted) return [];
+    
+    const now = new Date();
     if (timeRange === "day") {
       return logs.filter(log => isWithinInterval(new Date(log.date), {
-        start: startOfDay(new Date()),
-        end: endOfDay(new Date())
+        start: startOfDay(now),
+        end: endOfDay(now)
       }));
     }
     if (timeRange === "week") {
       return logs.filter(log => isWithinInterval(new Date(log.date), {
-        start: startOfWeek(new Date()),
-        end: endOfWeek(new Date())
+        start: startOfWeek(now),
+        end: endOfWeek(now)
       }));
     }
     if (timeRange === "month") {
       return logs.filter(log => isWithinInterval(new Date(log.date), {
-        start: startOfMonth(new Date()),
-        end: endOfMonth(new Date())
+        start: startOfMonth(now),
+        end: endOfMonth(now)
       }));
     }
     return logs;
-  }, [logs, timeRange]);
+  }, [logs, timeRange, mounted]);
 
   const stats = useMemo(() => {
     const total = filteredLogs.length;
@@ -56,6 +65,8 @@ export default function AdminDashboard() {
   }, [filteredLogs]);
 
   const dailyTrendData = useMemo(() => {
+    if (!mounted) return [];
+    
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = subDays(new Date(), i);
       return format(d, "yyyy-MM-dd");
@@ -65,7 +76,7 @@ export default function AdminDashboard() {
       const count = logs.filter(l => l.date === date).length;
       return { date: format(new Date(date), "MMM dd"), count };
     });
-  }, [logs]);
+  }, [logs, mounted]);
 
   const generateReport = () => {
     const reportData = {
@@ -86,7 +97,7 @@ export default function AdminDashboard() {
     URL.revokeObjectURL(url);
   };
 
-  if (!isLoaded) return null;
+  if (!isLoaded || !mounted) return null;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">

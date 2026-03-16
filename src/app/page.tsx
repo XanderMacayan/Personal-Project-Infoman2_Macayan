@@ -24,7 +24,7 @@ export default function VisitorTerminal() {
   const [email, setEmail] = useState("");
   const [selectedVisitor, setSelectedVisitor] = useState<LibraryVisitor | null>(null);
   const [selectedPurpose, setSelectedPurpose] = useState("");
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   const libraryQuotes = [
     "A library is not a luxury but one of the necessities of life. — Henry Ward Beecher",
@@ -35,6 +35,7 @@ export default function VisitorTerminal() {
   const [quote, setQuote] = useState("");
 
   useEffect(() => {
+    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     setQuote(libraryQuotes[Math.floor(Math.random() * libraryQuotes.length)]);
     if (auth) initiateAnonymousSignIn(auth);
@@ -133,8 +134,8 @@ export default function VisitorTerminal() {
             <h1 className="text-4xl font-extrabold tracking-tight text-primary sm:text-6xl uppercase italic">
               NEU Library
             </h1>
-            <p className="text-xl font-medium text-muted-foreground/80">
-              {format(currentTime, "MMMM do, yyyy • h:mm a")}
+            <p className="text-xl font-medium text-muted-foreground/80 min-h-[1.75rem]">
+              {currentTime ? format(currentTime, "MMMM do, yyyy • h:mm a") : ""}
             </p>
           </div>
         </div>
