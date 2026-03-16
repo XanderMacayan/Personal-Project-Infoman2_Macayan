@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect } from 'react';
@@ -6,7 +7,11 @@ import { useFirestore, useCollection, useDoc, useUser, useMemoFirebase } from '@
 import { VisitorLogEntry, LibraryVisitor, MOCK_USERS } from '@/lib/mock-data';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
-export function useLibraryStore() {
+interface UseLibraryStoreOptions {
+  fetchLogs?: boolean;
+}
+
+export function useLibraryStore(options: UseLibraryStoreOptions = {}) {
   const firestore = useFirestore();
   const { user } = useUser();
 
@@ -18,10 +23,11 @@ export function useLibraryStore() {
   const { data: adminRole, isLoading: isAdminCheckLoading } = useDoc(adminSentinelRef);
   const isAdmin = !!adminRole;
 
+  // Only fetch visit logs if explicitly requested and the user is a confirmed admin
   const logsQuery = useMemoFirebase(() => {
-    if (!firestore || !isAdmin) return null;
+    if (!firestore || !isAdmin || !options.fetchLogs) return null;
     return query(collection(firestore, 'visitLogs'), orderBy('entryDateTime', 'desc'));
-  }, [firestore, isAdmin]);
+  }, [firestore, isAdmin, options.fetchLogs]);
 
   const visitorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -50,22 +56,21 @@ export function useLibraryStore() {
           });
         }
       } else {
-        // Only sync if admin is logged in to avoid permission errors for anonymous users
-        if (!isAdmin) return;
-        
+        // Sync names if they differ from institutional records
         MOCK_USERS.forEach(mockUser => {
           const existing = visitors.find(v => v.id === mockUser.id);
           if (existing && existing.name !== mockUser.name) {
             const docRef = doc(firestore, 'users', mockUser.id);
+            // Rules allow name updates for signed-in users
             updateDocumentNonBlocking(docRef, { name: mockUser.name });
           }
         });
       }
     }
     checkAndSeed();
-  }, [firestore, visitors, isVisitorsLoading, isAdmin]);
+  }, [firestore, visitors, isVisitorsLoading]);
 
-  const isLoaded = !isAdminCheckLoading && !isVisitorsLoading && (!isAdmin || !isLogsLoading);
+  const isLoaded = !isAdminCheckLoading && !isVisitorsLoading && (!options.fetchLogs || !isLogsLoading);
 
   const addLog = (log: Omit<VisitorLogEntry, 'id'>) => {
     if (!firestore) return;

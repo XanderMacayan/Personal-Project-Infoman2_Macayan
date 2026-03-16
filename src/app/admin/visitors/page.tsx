@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -13,7 +14,7 @@ import { PURPOSES, COLLEGES } from "@/lib/mock-data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function VisitorManagement() {
-  const { logs, visitors, toggleBlockVisitor, isLoaded } = useLibraryStore();
+  const { logs, visitors, toggleBlockVisitor, isLoaded } = useLibraryStore({ fetchLogs: true });
   const [searchTerm, setSearchTerm] = useState("");
   const [collegeFilter, setCollegeFilter] = useState("all");
   const [purposeFilter, setPurposeFilter] = useState("all");

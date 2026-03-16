@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -9,7 +10,7 @@ import { BrainCircuit, Loader2, Sparkles, TrendingUp, AlertTriangle, Lightbulb }
 import { useToast } from "@/hooks/use-toast";
 
 export default function AiInsights() {
-  const { logs, isLoaded } = useLibraryStore();
+  const { logs, isLoaded } = useLibraryStore({ fetchLogs: true });
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AiVisitorTrendSummaryOutput | null>(null);

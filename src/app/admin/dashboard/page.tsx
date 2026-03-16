@@ -14,7 +14,7 @@ import { format, subDays, isWithinInterval, startOfDay, endOfDay, startOfWeek, e
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminDashboard() {
-  const { logs, isLoaded } = useLibraryStore();
+  const { logs, isLoaded } = useLibraryStore({ fetchLogs: true });
   const [timeRange, setTimeRange] = useState("all");
   const [mounted, setMounted] = useState(false);
 
