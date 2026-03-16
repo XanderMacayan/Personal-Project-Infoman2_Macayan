@@ -7,10 +7,9 @@ import { VisitorLogEntry, LibraryVisitor, MOCK_USERS } from '@/lib/mock-data';
 import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export function useLibraryStore() {
-  const { firestore } = useFirestore() ? { firestore: useFirestore() } : { firestore: null };
+  const firestore = useFirestore();
   const { user } = useUser();
 
-  // Check if the current user is an admin by looking at the sentinel collection
   const adminSentinelRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'roles_admin', user.uid);
@@ -19,7 +18,6 @@ export function useLibraryStore() {
   const { data: adminRole, isLoading: isAdminCheckLoading } = useDoc(adminSentinelRef);
   const isAdmin = !!adminRole;
 
-  // Memoize collection references
   const logsQuery = useMemoFirebase(() => {
     if (!firestore || !isAdmin) return null;
     return query(collection(firestore, 'visitLogs'), orderBy('entryDateTime', 'desc'));
@@ -33,14 +31,12 @@ export function useLibraryStore() {
   const { data: logs, isLoading: isLogsLoading } = useCollection<VisitorLogEntry>(logsQuery);
   const { data: visitors, isLoading: isVisitorsLoading } = useCollection<LibraryVisitor>(visitorsQuery);
 
-  // Auto-seed and sync mock users
   useEffect(() => {
     async function checkAndSeed() {
       if (!firestore || isVisitorsLoading) return;
       
       const usersCol = collection(firestore, 'users');
       
-      // If visitors list is empty (initial seed)
       if (!visitors || visitors.length === 0) {
         const snapshot = await getDocs(query(usersCol, limit(1)));
         if (snapshot.empty) {
@@ -54,13 +50,11 @@ export function useLibraryStore() {
           });
         }
       } else {
-        // Only attempt to sync if we have a user (even anonymous)
-        if (!user) return;
+        // Only sync if admin is logged in to avoid permission errors for anonymous users
+        if (!isAdmin) return;
         
-        // Logic to ensure names are synchronized for test accounts
         MOCK_USERS.forEach(mockUser => {
           const existing = visitors.find(v => v.id === mockUser.id);
-          // Only sync if name changed and we avoid spamming updates
           if (existing && existing.name !== mockUser.name) {
             const docRef = doc(firestore, 'users', mockUser.id);
             updateDocumentNonBlocking(docRef, { name: mockUser.name });
@@ -69,7 +63,7 @@ export function useLibraryStore() {
       }
     }
     checkAndSeed();
-  }, [firestore, visitors, isVisitorsLoading, user]);
+  }, [firestore, visitors, isVisitorsLoading, isAdmin]);
 
   const isLoaded = !isAdminCheckLoading && !isVisitorsLoading && (!isAdmin || !isLogsLoading);
 

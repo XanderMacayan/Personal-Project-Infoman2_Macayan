@@ -2,17 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * NEU Library Access System - Security Rules
-     *
-     * CORE PHILOSOPHY:
-     * This ruleset implements a robust Role-Based Access Control (RBAC) model using 
-     * Database-Backed Access Control (DBAC). It distinguishes between regular users 
-     * and administrators via a sentinel collection strategy.
-     */
-
-    // --- Helper Functions ---
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -25,32 +14,18 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for the admin sentinel collection.
-     */
     match /roles_admin/{userId} {
-      allow get, list: if isSignedIn();
+      allow get: if isSignedIn();
       allow create, update, delete: if isOwner(userId);
     }
 
-    /**
-     * @description Manages user profiles. 
-     * Updated to allow name synchronization during the prototype phase while protecting the 'isBlocked' status.
-     */
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      
+      allow get, list: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isAdmin() || (isSignedIn() && request.resource.data.isBlocked == resource.data.isBlocked);
       allow delete: if isAdmin();
     }
 
-    /**
-     * @description Records of library visits.
-     */
     match /visitLogs/{visitLogId} {
       allow get: if isAdmin() || (isSignedIn() && resource.data.visitorId == request.auth.uid);
       allow list: if isAdmin();
