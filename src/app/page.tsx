@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { LibraryIcon, UserCheck, Search, Mail, ScanFace, ChevronRight, Lock } from "lucide-react";
-import { PURPOSES, MOCK_USERS, LibraryVisitor } from "@/lib/mock-data";
+import { BookOpen, UserCheck, Mail, ScanFace, ChevronRight, Lock, Quote } from "lucide-react";
+import { PURPOSES, LibraryVisitor } from "@/lib/mock-data";
 import { useLibraryStore } from "@/hooks/use-library-store";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -22,8 +22,17 @@ export default function VisitorTerminal() {
   const [selectedPurpose, setSelectedPurpose] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  const libraryQuotes = [
+    "A library is not a luxury but one of the necessities of life. — Henry Ward Beecher",
+    "Everything you need for better future and success has already been written. — Jim Rohn",
+    "The only thing that you absolutely have to know, is the location of the library. — Albert Einstein",
+    "Books are a uniquely portable magic. — Stephen King"
+  ];
+  const [quote, setQuote] = useState("");
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    setQuote(libraryQuotes[Math.floor(Math.random() * libraryQuotes.length)]);
     return () => clearInterval(timer);
   }, []);
 
@@ -52,7 +61,6 @@ export default function VisitorTerminal() {
   };
 
   const handleRfidSimulate = () => {
-    // Simulate tapping RFID by picking a random non-blocked user
     const available = visitors.filter(v => !v.isBlocked);
     const randomVisitor = available[Math.floor(Math.random() * available.length)];
     setSelectedVisitor(randomVisitor);
@@ -82,10 +90,9 @@ export default function VisitorTerminal() {
 
       toast({
         title: "Entry Recorded",
-        description: `Welcome to NEU Library, ${selectedVisitor.name.split(' ')[0]}!`,
+        description: `Welcome to the Sanctuary of Knowledge, ${selectedVisitor.name.split(' ')[0]}!`,
       });
 
-      // Reset
       setStep("identify");
       setEmail("");
       setSelectedVisitor(null);
@@ -93,156 +100,167 @@ export default function VisitorTerminal() {
     }
   };
 
-  const goToAdmin = () => {
-    router.push("/admin/dashboard");
-  };
-
   if (!isLoaded) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4 relative overflow-hidden font-body">
       {/* Admin Quick Access */}
       <Button 
         variant="ghost" 
         size="sm" 
-        className="absolute top-4 right-4 text-muted-foreground hover:text-primary"
-        onClick={goToAdmin}
+        className="absolute top-4 right-4 text-muted-foreground hover:text-primary z-50"
+        onClick={() => router.push("/admin/dashboard")}
       >
         <Lock className="w-4 h-4 mr-2" />
-        Admin Portal
+        Librarian Login
       </Button>
 
-      {/* Decorative background elements */}
-      <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse" />
+      {/* Decorative background pattern */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #1a365d 1px, transparent 0)', backgroundSize: '40px 40px' }} />
 
       <div className="w-full max-w-2xl z-10 space-y-8">
-        <div className="text-center space-y-2">
-          <div className="flex justify-center mb-6">
-            <div className="p-4 bg-primary rounded-2xl shadow-xl shadow-primary/20">
-              <LibraryIcon className="w-12 h-12 text-white" />
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="p-5 bg-primary rounded-full shadow-2xl ring-8 ring-primary/10">
+              <BookOpen className="w-12 h-12 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
-            NEU Library Log
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            {format(currentTime, "EEEE, MMMM do, yyyy | h:mm:ss a")}
-          </p>
+          <div className="space-y-1">
+            <h1 className="text-4xl font-extrabold tracking-tight text-primary sm:text-6xl uppercase italic">
+              NEU Library
+            </h1>
+            <p className="text-xl font-medium text-muted-foreground/80">
+              {format(currentTime, "MMMM do, yyyy • h:mm a")}
+            </p>
+          </div>
         </div>
 
         {step === "identify" ? (
-          <Card className="border-none shadow-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <ScanFace className="w-6 h-6 text-primary" />
-                Visitor Identification
-              </CardTitle>
-              <CardDescription>
-                Tap your RFID or enter your institutional email to proceed.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-2">
-              <form onSubmit={handleIdentify} className="space-y-4">
-                <div className="relative group">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                  <Input 
-                    placeholder="jcesperanza@neu.edu.ph" 
-                    className="pl-10 h-12 text-lg border-2 focus-visible:ring-primary"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full h-12 text-lg font-semibold bg-primary hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-                  Verify Credentials
-                </Button>
-              </form>
+          <div className="space-y-6">
+            <Card className="border-none shadow-xl border-t-4 border-t-accent bg-white/90 backdrop-blur-md">
+              <CardHeader className="text-center pb-2">
+                <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
+                  <ScanFace className="w-6 h-6 text-accent" />
+                  Patron Verification
+                </CardTitle>
+                <CardDescription className="text-base">
+                  Identify yourself to access library resources.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <form onSubmit={handleIdentify} className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="relative group">
+                      <Mail className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      <Input 
+                        placeholder="institutional.email@neu.edu.ph" 
+                        className="pl-12 h-12 text-lg border-2 border-muted focus-visible:border-primary focus-visible:ring-0 rounded-xl"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full h-12 text-lg font-bold bg-primary hover:bg-primary/95 rounded-xl shadow-lg transition-transform active:scale-95">
+                    Proceed to Entry
+                  </Button>
+                </form>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-muted" />
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-muted/50" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-3 text-muted-foreground font-semibold">Digital RFID Access</span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Or tap your ID card</span>
-                </div>
-              </div>
 
-              <div className="flex flex-col items-center">
                 <Button 
                   onClick={handleRfidSimulate}
                   variant="outline" 
-                  className="w-full h-24 border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 flex flex-col gap-2 transition-all group"
+                  className="w-full h-20 border-2 border-dashed border-primary/20 hover:border-primary hover:bg-primary/5 rounded-xl flex flex-col gap-1 transition-all group"
                 >
-                  <ScanFace className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" />
-                  <span className="text-primary font-medium">RFID Sensor Active</span>
+                  <ScanFace className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="text-primary font-bold tracking-tight">Tap Student ID Card</span>
                 </Button>
-                <p className="mt-4 text-xs text-muted-foreground text-center">
-                  Place your NEU Student/Employee ID on the terminal's scanner.
+              </CardContent>
+            </Card>
+
+            <div className="text-center px-8 animate-in fade-in slide-in-from-bottom-2 duration-1000">
+              <div className="flex items-start justify-center gap-2 text-muted-foreground italic">
+                <Quote className="w-4 h-4 mt-1 flex-shrink-0 text-accent opacity-50" />
+                <p className="text-sm max-w-md">{quote}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-md animate-in zoom-in-95 duration-300">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto w-24 h-24 rounded-full border-4 border-accent/20 p-1 mb-4">
+                <div className="w-full h-full rounded-full bg-accent/10 flex items-center justify-center overflow-hidden">
+                   <UserCheck className="w-12 h-12 text-primary" />
+                </div>
+              </div>
+              <CardTitle className="text-3xl font-black text-primary uppercase">
+                Happy Learning!
+              </CardTitle>
+              <div className="space-y-1">
+                <p className="text-xl font-bold text-foreground">
+                  {selectedVisitor?.name}
+                </p>
+                <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+                  {selectedVisitor?.college}
                 </p>
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-none shadow-2xl bg-white/80 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <CardHeader className="text-center pb-2">
-              <div className="mx-auto w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center mb-4">
-                <UserCheck className="w-10 h-10 text-primary" />
-              </div>
-              <CardTitle className="text-3xl font-bold text-primary">
-                Welcome to NEU Library!
-              </CardTitle>
-              <p className="text-lg font-medium text-foreground mt-2">
-                {selectedVisitor?.name}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {selectedVisitor?.college}
-              </p>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
-              <div className="space-y-3">
-                <label className="text-sm font-semibold text-muted-foreground">
-                  Select your purpose of visit:
+              <div className="space-y-4">
+                <label className="text-sm font-bold text-primary uppercase tracking-tighter">
+                  Primary Research Activity:
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {PURPOSES.map((purpose) => (
                     <Button
                       key={purpose}
                       variant={selectedPurpose === purpose ? "default" : "outline"}
-                      className={`h-14 justify-start text-left px-4 ${
+                      className={`h-14 justify-start text-left px-4 rounded-xl font-medium ${
                         selectedPurpose === purpose 
-                          ? "bg-primary text-white border-primary" 
-                          : "hover:border-primary hover:bg-primary/5"
+                          ? "bg-accent text-accent-foreground border-accent shadow-md" 
+                          : "border-2 border-muted hover:border-accent/50 hover:bg-accent/5"
                       }`}
                       onClick={() => setSelectedPurpose(purpose)}
                     >
-                      <ChevronRight className={`mr-2 h-4 w-4 ${selectedPurpose === purpose ? "opacity-100" : "opacity-0"}`} />
+                      <BookOpen className={`mr-2 h-4 w-4 ${selectedPurpose === purpose ? "opacity-100" : "opacity-30"}`} />
                       {purpose}
                     </Button>
                   ))}
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-4 pt-4">
                 <Button 
                   variant="ghost" 
-                  className="flex-1 h-12"
+                  className="flex-1 h-12 font-bold rounded-xl"
                   onClick={() => setStep("identify")}
                 >
-                  Cancel
+                  Go Back
                 </Button>
                 <Button 
-                  className="flex-[2] h-12 bg-primary hover:bg-primary/90 text-lg font-semibold shadow-lg shadow-primary/20"
+                  className="flex-[2] h-12 bg-primary hover:bg-primary/95 text-lg font-bold rounded-xl shadow-xl active:scale-95 transition-transform"
                   onClick={handleCompleteEntry}
                   disabled={!selectedPurpose}
                 >
-                  Confirm Entry
+                  Enter Library
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
       </div>
+      
+      <footer className="absolute bottom-6 text-muted-foreground/50 text-xs font-medium tracking-widest uppercase">
+        Knowledge is Power • NEU Institutional Library System
+      </footer>
     </div>
   );
 }

@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "library-hero",
+      "description": "A beautiful classic library interior with wooden shelves",
+      "imageUrl": "https://picsum.photos/seed/library1/1200/800",
+      "imageHint": "library interior"
+    },
+    {
+      "id": "student-studying",
+      "description": "A student studying with books and a laptop",
+      "imageUrl": "https://picsum.photos/seed/study1/600/400",
+      "imageHint": "student studying"
+    }
+  ]
 }
