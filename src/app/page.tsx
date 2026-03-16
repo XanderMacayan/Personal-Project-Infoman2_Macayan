@@ -21,6 +21,7 @@ export default function VisitorTerminal() {
   
   const [step, setStep] = useState<"identify" | "staff-portal" | "role-select" | "welcome">("identify");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [selectedVisitor, setSelectedVisitor] = useState<any>(null);
   const [selectedPurpose, setSelectedPurpose] = useState("");
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -45,6 +46,7 @@ export default function VisitorTerminal() {
   const resetTerminal = () => {
     setStep("identify");
     setEmail("");
+    setPassword("");
     setSelectedVisitor(null);
     setSelectedPurpose("");
     revokeAdminStatus();
@@ -68,6 +70,31 @@ export default function VisitorTerminal() {
           });
           setIsProcessing(false);
           return;
+        }
+
+        // Check password if coming from the Librarian Portal
+        if (step === "staff-portal") {
+          if (password !== "admin123") {
+            toast({
+              title: "Authorization Failed",
+              description: "Incorrect librarian password.",
+              variant: "destructive"
+            });
+            setIsProcessing(false);
+            return;
+          }
+          
+          // Staff accounts or the special test account are allowed through the portal
+          const isStaff = visitor.isEmployee || visitor.email.toLowerCase().trim() === "jcesperanza@neu.edu.ph";
+          if (!isStaff) {
+            toast({
+              title: "Access Restricted",
+              description: "This portal is for library staff only.",
+              variant: "destructive"
+            });
+            setIsProcessing(false);
+            return;
+          }
         }
 
         setSelectedVisitor(visitor);
@@ -305,6 +332,8 @@ export default function VisitorTerminal() {
                     type="password"
                     placeholder="Staff Password" 
                     className="h-12 text-lg border-2 border-muted focus-visible:border-accent focus-visible:ring-0 rounded-xl"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={isProcessing}
                   />
