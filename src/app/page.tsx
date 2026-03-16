@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BookOpen, UserCheck, Mail, ScanFace, Lock, Quote, Loader2, ShieldCheck, LayoutDashboard, Users, LogOut, ArrowLeft, Shield } from "lucide-react";
-import { PURPOSES, LibraryVisitor } from "@/lib/mock-data";
+import { PURPOSES } from "@/lib/mock-data";
 import { useLibraryStore } from "@/hooks/use-library-store";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -22,7 +21,7 @@ export default function VisitorTerminal() {
   
   const [step, setStep] = useState<"identify" | "staff-portal" | "role-select" | "welcome">("identify");
   const [email, setEmail] = useState("");
-  const [selectedVisitor, setSelectedVisitor] = useState<LibraryVisitor | null>(null);
+  const [selectedVisitor, setSelectedVisitor] = useState<any>(null);
   const [selectedPurpose, setSelectedPurpose] = useState("");
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -57,7 +56,8 @@ export default function VisitorTerminal() {
     
     // Simulate identity check with institutional database
     setTimeout(() => {
-      const visitor = visitors.find(v => v.email.toLowerCase() === email.toLowerCase());
+      // Robust search: trim and lowercase both inputs
+      const visitor = visitors.find(v => v.email.toLowerCase().trim() === email.toLowerCase().trim());
       
       if (visitor) {
         if (visitor.isBlocked) {
@@ -72,9 +72,8 @@ export default function VisitorTerminal() {
 
         setSelectedVisitor(visitor);
 
-        // Logic for role selection
-        // Employees or special test account get role selection
-        const needsRoleSelect = visitor.isEmployee || visitor.email === "jcesperanza@neu.edu.ph";
+        // Staff members or the specific test account can choose roles
+        const needsRoleSelect = visitor.isEmployee || visitor.email.toLowerCase().trim() === "jcesperanza@neu.edu.ph";
 
         if (needsRoleSelect) {
           setStep("role-select");
@@ -119,7 +118,7 @@ export default function VisitorTerminal() {
     setSelectedVisitor(randomVisitor);
     setEmail(randomVisitor.email);
 
-    const needsRoleSelect = randomVisitor.isEmployee || randomVisitor.email === "jcesperanza@neu.edu.ph";
+    const needsRoleSelect = randomVisitor.isEmployee || randomVisitor.email.toLowerCase().trim() === "jcesperanza@neu.edu.ph";
 
     if (needsRoleSelect) {
       setStep("role-select");
