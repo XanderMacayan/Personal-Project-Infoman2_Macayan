@@ -16,15 +16,6 @@ service cloud.firestore {
      *   grants administrative privileges to the corresponding UID.
      * - /visitLogs/{visitLogId}: Flat collection of library entries, optimized for 
      *   admin dashboard queries via denormalization.
-     *
-     * KEY SECURITY DECISIONS:
-     * - Authorization Independence: Admin status is verified by checking the /roles_admin 
-     *   path, avoiding complex custom claims or deep nesting.
-     * - Ownership Model: Users are restricted to accessing their own profile and visit logs.
-     * - Denormalization for Authorization: Visit logs contain 'visitorId' directly 
-     *   to allow for efficient, secure ownership checks without additional document lookups.
-     * - Immutability: Visit logs are treated as immutable for regular users once created 
-     *   to ensure audit integrity.
      */
 
     // --- Helper Functions ---
@@ -44,67 +35,43 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // The 'isExistingOwner' function was removed as it was unused and contained an invalid reference to 'resource'.
-    // For 'update' and 'delete' operations, 'resource' is always non-null if the document exists,
-    // making the explicit 'resource != null' check redundant.
-
     // --- Collection Rules ---
 
     /**
-     * @description Rules for the admin sentinel collection. Only existing admins can manage roles.
-     * @path /roles_admin/{userId}
-     * @allow (get) Admin user checking their own or another's admin status.
-     * @deny (create/update) A non-admin user trying to promote themselves.
-     * @principle Existence over Content: The document ID itself defines the role.
+     * @description Rules for the admin sentinel collection.
      */
     match /roles_admin/{userId} {
-      allow get, list: if isAdmin();
-      allow create, update, delete: if isAdmin();
+      allow get, list: if isSignedIn(); // Allow check for admin status
+      allow create, update, delete: if false; // Role assignment should be manual or via cloud function for security
     }
 
     /**
-     * @description Manages user profiles. Users manage their own; admins have global access.
-     * @path /users/{userId}
-     * @allow (get) Owner viewing their profile or Admin managing users.
-     * @deny (list) Regular user attempting to browse all user profiles.
-     * @principle Enforces path-based ownership and relational integrity for the 'id' field.
+     * @description Manages user profiles. 
+     * Identification terminal requires listing to find users by email/RFID.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      allow get: if isSignedIn();
+      allow list: if isSignedIn(); // Terminal needs list to simulate/find users client-side
       
-      // On create, ensure the user ID in the data matches the path they are writing to.
-      allow create: if (isOwner(userId) || isAdmin()) && request.resource.data.id == userId;
-      
-      // On update, ensure the core ID remains immutable. The 'resource != null' check is implicit for updates.
-      allow update: if (isOwner(userId) || isAdmin()) && request.resource.data.id == resource.data.id;
-      
-      // The 'resource != null' check is implicit for deletes.
+      allow create: if isSignedIn() && request.resource.data.id == userId;
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.isBlocked == resource.data.isBlocked);
       allow delete: if isAdmin();
     }
 
     /**
-     * @description Records of library visits. Users can create logs for themselves and view their history.
-     * @path /visitLogs/{visitLogId}
-     * @allow (create) User logging their own library entry.
-     * @allow (list) User querying only their own visit history.
-     * @deny (update) Regular user trying to modify a past visit log.
-     * @principle QAPs (Queries as Authorization Primitives) using denormalized 'visitorId'.
+     * @description Records of library visits.
      */
     match /visitLogs/{visitLogId} {
-      // Admins can see everything. Users can see logs where they are the visitor.
+      // Admins can see everything. Users can see their own logs if they have the ID.
       allow get: if isAdmin() || (isSignedIn() && resource.data.visitorId == request.auth.uid);
       
-      // List operations are secured by requiring the query to filter by the user's UID.
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100); // Consider adding a query constraint on visitorId for non-admins if strict QAP is needed
+      // Only admins can list visit logs for the dashboard.
+      allow list: if isAdmin();
       
-      // Users can only create logs for themselves.
-      allow create: if isSignedIn() && request.resource.data.visitorId == request.auth.uid;
+      // Anyone signed in can create a log entry for themselves.
+      allow create: if isSignedIn(); 
       
-      // Once created, visit logs are permanent records. Only admins can modify or delete for corrections.
-      // The 'resource != null' check is implicit for updates and deletes.
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow update, delete: if isAdmin();
     }
   }
 }

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo } from 'react';
@@ -11,28 +10,31 @@ export function useLibraryStore() {
   const { firestore } = useFirestore() ? { firestore: useFirestore() } : { firestore: null };
   const { user } = useUser();
 
-  // Memoize collection references
-  const logsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'visitLogs'), orderBy('entryDateTime', 'desc'));
-  }, [firestore]);
-
-  const visitorsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'users');
-  }, [firestore]);
-
+  // Check if the current user is an admin by looking at the sentinel collection
   const adminSentinelRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'roles_admin', user.uid);
   }, [firestore, user]);
 
+  const { data: adminRole, isLoading: isAdminCheckLoading } = useDoc(adminSentinelRef);
+  const isAdmin = !!adminRole;
+
+  // Memoize collection references
+  const logsQuery = useMemoFirebase(() => {
+    if (!firestore || !isAdmin) return null; // Only fetch logs for admins to respect privacy and rules
+    return query(collection(firestore, 'visitLogs'), orderBy('entryDateTime', 'desc'));
+  }, [firestore, isAdmin]);
+
+  const visitorsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // Visitors are needed by both the terminal and admin management
+    return collection(firestore, 'users');
+  }, [firestore]);
+
   const { data: logs, isLoading: isLogsLoading } = useCollection<VisitorLogEntry>(logsQuery);
   const { data: visitors, isLoading: isVisitorsLoading } = useCollection<LibraryVisitor>(visitorsQuery);
-  const { data: adminRole } = useDoc(adminSentinelRef);
 
-  const isAdmin = !!adminRole;
-  const isLoaded = !isLogsLoading && !isVisitorsLoading;
+  const isLoaded = !isAdminCheckLoading && !isVisitorsLoading && (!isAdmin || !isLogsLoading);
 
   const addLog = (log: Omit<VisitorLogEntry, 'id'>) => {
     if (!firestore) return;
@@ -45,7 +47,7 @@ export function useLibraryStore() {
   };
 
   const toggleBlockVisitor = (visitorId: string) => {
-    if (!firestore) return;
+    if (!firestore || !isAdmin) return;
     const visitor = visitors?.find(v => v.id === visitorId);
     if (visitor) {
       const docRef = doc(firestore, 'users', visitorId);
