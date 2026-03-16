@@ -1,7 +1,6 @@
-
 "use client"
 
-import { useMemo, useEffect } from 'react';
+import { useEffect } from 'react';
 import { collection, query, orderBy, doc, getDocs, limit } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useUser, useMemoFirebase } from '@/firebase';
 import { VisitorLogEntry, LibraryVisitor, MOCK_USERS } from '@/lib/mock-data';
@@ -34,22 +33,34 @@ export function useLibraryStore() {
   const { data: logs, isLoading: isLogsLoading } = useCollection<VisitorLogEntry>(logsQuery);
   const { data: visitors, isLoading: isVisitorsLoading } = useCollection<LibraryVisitor>(visitorsQuery);
 
-  // Auto-seed mock users if the collection is empty
+  // Auto-seed and sync mock users
   useEffect(() => {
     async function checkAndSeed() {
-      if (!firestore || isVisitorsLoading || (visitors && visitors.length > 0)) return;
+      if (!firestore || isVisitorsLoading) return;
       
       const usersCol = collection(firestore, 'users');
-      const snapshot = await getDocs(query(usersCol, limit(1)));
       
-      if (snapshot.empty) {
-        MOCK_USERS.forEach((mockUser) => {
-          const docRef = doc(firestore, 'users', mockUser.id);
-          setDocumentNonBlocking(docRef, {
-            ...mockUser,
-            isBlocked: false,
-            role: mockUser.isEmployee ? 'Admin' : 'Visitor'
-          }, { merge: true });
+      // If visitors list is empty (initial seed)
+      if (!visitors || visitors.length === 0) {
+        const snapshot = await getDocs(query(usersCol, limit(1)));
+        if (snapshot.empty) {
+          MOCK_USERS.forEach((mockUser) => {
+            const docRef = doc(firestore, 'users', mockUser.id);
+            setDocumentNonBlocking(docRef, {
+              ...mockUser,
+              isBlocked: false,
+              role: mockUser.isEmployee ? 'Admin' : 'Visitor'
+            }, { merge: true });
+          });
+        }
+      } else {
+        // Logic to ensure names are synchronized for test accounts
+        MOCK_USERS.forEach(mockUser => {
+          const existing = visitors.find(v => v.id === mockUser.id);
+          if (existing && existing.name !== mockUser.name) {
+            const docRef = doc(firestore, 'users', mockUser.id);
+            updateDocumentNonBlocking(docRef, { name: mockUser.name });
+          }
         });
       }
     }
