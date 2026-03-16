@@ -58,7 +58,6 @@ export default function VisitorTerminal() {
     
     // Simulate identity check with institutional database
     setTimeout(() => {
-      // Robust search: trim and lowercase both inputs
       const visitor = visitors.find(v => v.email.toLowerCase().trim() === email.toLowerCase().trim());
       
       if (visitor) {
@@ -72,7 +71,6 @@ export default function VisitorTerminal() {
           return;
         }
 
-        // Check password if coming from the Librarian Portal
         if (step === "staff-portal") {
           if (password !== "admin123") {
             toast({
@@ -84,7 +82,6 @@ export default function VisitorTerminal() {
             return;
           }
           
-          // Staff accounts or the special test account are allowed through the portal
           const isStaff = visitor.isEmployee || visitor.email.toLowerCase().trim() === "jcesperanza@neu.edu.ph";
           if (!isStaff) {
             toast({
@@ -99,7 +96,6 @@ export default function VisitorTerminal() {
 
         setSelectedVisitor(visitor);
 
-        // Staff members or the specific test account can choose roles
         const needsRoleSelect = visitor.isEmployee || visitor.email.toLowerCase().trim() === "jcesperanza@neu.edu.ph";
 
         if (needsRoleSelect) {
@@ -126,7 +122,7 @@ export default function VisitorTerminal() {
         title: "Administrative Mode",
         description: "Librarian privileges granted for this session.",
       });
-      setStep("welcome");
+      router.push("/admin/dashboard");
     } else {
       revokeAdminStatus();
       toast({
@@ -196,18 +192,6 @@ export default function VisitorTerminal() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4 relative overflow-hidden font-body">
-      {isAdmin && (
-        <Button 
-          variant="default" 
-          size="sm" 
-          className="absolute top-4 right-4 bg-accent text-accent-foreground hover:bg-accent/90 z-50 font-bold shadow-md"
-          onClick={() => router.push("/admin/dashboard")}
-        >
-          <LayoutDashboard className="w-4 h-4 mr-2" />
-          Go to Dashboard
-        </Button>
-      )}
-
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #1a365d 1px, transparent 0)', backgroundSize: '40px 40px' }} />
 
       <div className="w-full max-w-2xl z-10 space-y-8">
