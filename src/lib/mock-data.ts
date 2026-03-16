@@ -33,7 +33,7 @@ export interface LibraryVisitor {
 export const MOCK_USERS: LibraryVisitor[] = [
   {
     id: "v1",
-    name: "John Carlo Esperanza",
+    name: "Jeremias C. Esperanza",
     college: "College of Computer Studies",
     email: "jcesperanza@neu.edu.ph",
     isEmployee: false,
