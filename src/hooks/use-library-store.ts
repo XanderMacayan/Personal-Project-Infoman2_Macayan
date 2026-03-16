@@ -1,10 +1,10 @@
 "use client"
 
-import { useMemo } from 'react';
-import { collection, query, orderBy, doc, where } from 'firebase/firestore';
+import { useMemo, useEffect } from 'react';
+import { collection, query, orderBy, doc, getDocs, limit } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useUser, useMemoFirebase } from '@/firebase';
-import { VisitorLogEntry, LibraryVisitor } from '@/lib/mock-data';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { VisitorLogEntry, LibraryVisitor, MOCK_USERS } from '@/lib/mock-data';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export function useLibraryStore() {
   const { firestore } = useFirestore() ? { firestore: useFirestore() } : { firestore: null };
@@ -21,18 +21,39 @@ export function useLibraryStore() {
 
   // Memoize collection references
   const logsQuery = useMemoFirebase(() => {
-    if (!firestore || !isAdmin) return null; // Only fetch logs for admins to respect privacy and rules
+    if (!firestore || !isAdmin) return null;
     return query(collection(firestore, 'visitLogs'), orderBy('entryDateTime', 'desc'));
   }, [firestore, isAdmin]);
 
   const visitorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Visitors are needed by both the terminal and admin management
     return collection(firestore, 'users');
   }, [firestore]);
 
   const { data: logs, isLoading: isLogsLoading } = useCollection<VisitorLogEntry>(logsQuery);
   const { data: visitors, isLoading: isVisitorsLoading } = useCollection<LibraryVisitor>(visitorsQuery);
+
+  // Auto-seed mock users if the collection is empty
+  useEffect(() => {
+    async function checkAndSeed() {
+      if (!firestore || isVisitorsLoading || (visitors && visitors.length > 0)) return;
+      
+      const usersCol = collection(firestore, 'users');
+      const snapshot = await getDocs(query(usersCol, limit(1)));
+      
+      if (snapshot.empty) {
+        MOCK_USERS.forEach((mockUser) => {
+          const docRef = doc(firestore, 'users', mockUser.id);
+          setDocumentNonBlocking(docRef, {
+            ...mockUser,
+            isBlocked: false,
+            role: mockUser.isEmployee ? 'Admin' : 'Visitor'
+          }, { merge: true });
+        });
+      }
+    }
+    checkAndSeed();
+  }, [firestore, visitors, isVisitorsLoading]);
 
   const isLoaded = !isAdminCheckLoading && !isVisitorsLoading && (!isAdmin || !isLogsLoading);
 
@@ -55,11 +76,18 @@ export function useLibraryStore() {
     }
   };
 
+  const claimAdminStatus = () => {
+    if (!firestore || !user) return;
+    const adminRef = doc(firestore, 'roles_admin', user.uid);
+    setDocumentNonBlocking(adminRef, { grantedAt: new Date().toISOString() }, { merge: true });
+  };
+
   return { 
     logs: logs || [], 
     visitors: visitors || [], 
     addLog, 
     toggleBlockVisitor, 
+    claimAdminStatus,
     isLoaded,
     isAdmin 
   };

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react";
@@ -6,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BookOpen, UserCheck, Mail, ScanFace, Lock, Quote } from "lucide-react";
+import { BookOpen, UserCheck, Mail, ScanFace, Lock, Quote, Loader2 } from "lucide-react";
 import { PURPOSES, LibraryVisitor } from "@/lib/mock-data";
 import { useLibraryStore } from "@/hooks/use-library-store";
 import { useToast } from "@/hooks/use-toast";
@@ -18,13 +17,14 @@ export default function VisitorTerminal() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
-  const { addLog, visitors, isLoaded } = useLibraryStore();
+  const { addLog, visitors, isLoaded, claimAdminStatus } = useLibraryStore();
   
   const [step, setStep] = useState<"identify" | "welcome">("identify");
   const [email, setEmail] = useState("");
   const [selectedVisitor, setSelectedVisitor] = useState<LibraryVisitor | null>(null);
   const [selectedPurpose, setSelectedPurpose] = useState("");
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const libraryQuotes = [
     "A library is not a luxury but one of the necessities of life. — Henry Ward Beecher",
@@ -44,26 +44,39 @@ export default function VisitorTerminal() {
 
   const handleIdentify = (e: React.FormEvent) => {
     e.preventDefault();
-    const visitor = visitors.find(v => v.email.toLowerCase() === email.toLowerCase());
+    setIsProcessing(true);
     
-    if (visitor) {
-      if (visitor.isBlocked) {
+    // Small timeout to simulate identity check
+    setTimeout(() => {
+      const visitor = visitors.find(v => v.email.toLowerCase() === email.toLowerCase());
+      
+      if (visitor) {
+        if (visitor.isBlocked) {
+          toast({
+            title: "Access Denied",
+            description: "Your access to the library has been temporarily restricted. Please contact the librarian.",
+            variant: "destructive"
+          });
+          setIsProcessing(false);
+          return;
+        }
+
+        // Prototype convenience: if identifying as admin email, grant admin sentinel status
+        if (visitor.email === "admin@neu.edu.ph") {
+          claimAdminStatus();
+        }
+
+        setSelectedVisitor(visitor);
+        setStep("welcome");
+      } else {
         toast({
-          title: "Access Denied",
-          description: "Your access to the library has been temporarily restricted. Please contact the librarian.",
+          title: "Identification Failed",
+          description: "Institutional email not recognized. Please try again or tap your RFID.",
           variant: "destructive"
         });
-        return;
       }
-      setSelectedVisitor(visitor);
-      setStep("welcome");
-    } else {
-      toast({
-        title: "Identification Failed",
-        description: "Institutional email not recognized. Please try again or tap your RFID.",
-        variant: "destructive"
-      });
-    }
+      setIsProcessing(false);
+    }, 600);
   };
 
   const handleRfidSimulate = () => {
@@ -107,7 +120,14 @@ export default function VisitorTerminal() {
     }
   };
 
-  if (!isLoaded) return null;
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+        <p className="mt-4 text-muted-foreground font-medium animate-pulse">Initializing Library Systems...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4 relative overflow-hidden font-body">
@@ -134,9 +154,11 @@ export default function VisitorTerminal() {
             <h1 className="text-4xl font-extrabold tracking-tight text-primary sm:text-6xl uppercase italic">
               NEU Library
             </h1>
-            <p className="text-xl font-medium text-muted-foreground/80 min-h-[1.75rem]">
-              {currentTime ? format(currentTime, "MMMM do, yyyy • h:mm a") : ""}
-            </p>
+            {currentTime && (
+              <p className="text-xl font-medium text-muted-foreground/80 min-h-[1.75rem]">
+                {format(currentTime, "MMMM do, yyyy • h:mm a")}
+              </p>
+            )}
           </div>
         </div>
 
@@ -163,11 +185,16 @@ export default function VisitorTerminal() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
+                        disabled={isProcessing}
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full h-12 text-lg font-bold bg-primary hover:bg-primary/95 rounded-xl shadow-lg transition-transform active:scale-95">
-                    Proceed to Entry
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 text-lg font-bold bg-primary hover:bg-primary/95 rounded-xl shadow-lg transition-transform active:scale-95"
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" /> : "Proceed to Entry"}
                   </Button>
                 </form>
 
@@ -184,6 +211,7 @@ export default function VisitorTerminal() {
                   onClick={handleRfidSimulate}
                   variant="outline" 
                   className="w-full h-20 border-2 border-dashed border-primary/20 hover:border-primary hover:bg-primary/5 rounded-xl flex flex-col gap-1 transition-all group"
+                  disabled={isProcessing}
                 >
                   <ScanFace className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
                   <span className="text-primary font-bold tracking-tight">Tap Student ID Card</span>
