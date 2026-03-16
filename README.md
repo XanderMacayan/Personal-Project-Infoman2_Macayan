@@ -4,9 +4,7 @@ An institutional-grade visitor monitoring and scholarly traffic analytics platfo
 
 Link for website: https://personal-project-infoman2-macayan.vercel.app
 
-<strong>Account for testing</strong>
-
-<br>
+<strong><header>Account for testing</header></strong>
 <br><strong>Password for Admin Dashboard: admin123</strong>
 <br><strong>Admin Access</strong>
 
