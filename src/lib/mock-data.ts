@@ -62,6 +62,46 @@ export const MOCK_USERS: LibraryVisitor[] = [
     email: "dclark@neu.edu.ph",
     isEmployee: true,
     rfid: "RFID-98765"
+  },
+  {
+    id: "v5",
+    name: "Maria Garcia",
+    college: "College of Engineering and Architecture",
+    email: "mgarcia@neu.edu.ph",
+    isEmployee: false,
+    rfid: "RFID-11111"
+  },
+  {
+    id: "v6",
+    name: "Luis Tan",
+    college: "College of Business Administration",
+    email: "ltan@neu.edu.ph",
+    isEmployee: false,
+    rfid: "RFID-22222"
+  },
+  {
+    id: "v7",
+    name: "Rose Reyes",
+    college: "College of Nursing",
+    email: "rreyes@neu.edu.ph",
+    isEmployee: false,
+    rfid: "RFID-33333"
+  },
+  {
+    id: "v8",
+    name: "Anna Bautista",
+    college: "Library Staff",
+    email: "abautista@neu.edu.ph",
+    isEmployee: true,
+    rfid: "RFID-44444"
+  },
+  {
+    id: "v9",
+    name: "Victor Crudo",
+    college: "Administration Office",
+    email: "vcrudo@neu.edu.ph",
+    isEmployee: true,
+    rfid: "RFID-55555"
   }
 ];
 
@@ -74,4 +114,5 @@ export interface VisitorLogEntry {
   time: string;
   purpose: string;
   isEmployee: boolean;
+  entryDateTime?: string;
 }

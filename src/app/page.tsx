@@ -72,12 +72,12 @@ export default function VisitorTerminal() {
 
         setSelectedVisitor(visitor);
 
-        // Logic for role switching based on institutional email
-        if (visitor.email === "jcesperanza@neu.edu.ph") {
+        // Logic for role selection
+        // Employees or special test account get role selection
+        const needsRoleSelect = visitor.isEmployee || visitor.email === "jcesperanza@neu.edu.ph";
+
+        if (needsRoleSelect) {
           setStep("role-select");
-        } else if (visitor.email === "admin@neu.edu.ph") {
-          claimAdminStatus();
-          setStep("welcome");
         } else {
           revokeAdminStatus();
           setStep("welcome");
@@ -104,7 +104,7 @@ export default function VisitorTerminal() {
     } else {
       revokeAdminStatus();
       toast({
-        title: "Student Mode",
+        title: "Patron Mode",
         description: "Accessing terminal as a regular patron.",
       });
       setStep("welcome");
@@ -119,11 +119,10 @@ export default function VisitorTerminal() {
     setSelectedVisitor(randomVisitor);
     setEmail(randomVisitor.email);
 
-    if (randomVisitor.email === "jcesperanza@neu.edu.ph") {
+    const needsRoleSelect = randomVisitor.isEmployee || randomVisitor.email === "jcesperanza@neu.edu.ph";
+
+    if (needsRoleSelect) {
       setStep("role-select");
-    } else if (randomVisitor.email === "admin@neu.edu.ph") {
-      claimAdminStatus();
-      setStep("welcome");
     } else {
       revokeAdminStatus();
       setStep("welcome");
