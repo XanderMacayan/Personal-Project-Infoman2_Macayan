@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react";
@@ -5,12 +6,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   BookOpen, UserCheck, Mail, ScanFace, Lock, Quote, Loader2, 
   ShieldCheck, LayoutDashboard, Users, LogOut, ArrowLeft, Shield,
-  GraduationCap, Briefcase, Sparkles
+  GraduationCap, Briefcase, Sparkles, PlusCircle, CreditCard
 } from "lucide-react";
-import { PURPOSES } from "@/lib/mock-data";
+import { PURPOSES, COLLEGES } from "@/lib/mock-data";
 import { useLibraryStore } from "@/hooks/use-library-store";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -23,11 +25,14 @@ export default function VisitorTerminal() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
-  const { addLog, visitors, isLoaded, claimAdminStatus, revokeAdminStatus } = useLibraryStore();
+  const { addLog, registerUser, visitors, isLoaded, claimAdminStatus, revokeAdminStatus } = useLibraryStore();
   
-  const [step, setStep] = useState<"identify" | "staff-portal" | "role-select" | "welcome">("identify");
+  const [step, setStep] = useState<"identify" | "staff-portal" | "rfid-entry" | "guest-register" | "role-select" | "welcome">("identify");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [scanId, setScanId] = useState("");
+  const [guestName, setGuestName] = useState("");
+  const [guestCollege, setGuestCollege] = useState("");
   const [selectedVisitor, setSelectedVisitor] = useState<any>(null);
   const [selectedPurpose, setSelectedPurpose] = useState("");
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -55,6 +60,9 @@ export default function VisitorTerminal() {
     setStep("identify");
     setEmail("");
     setPassword("");
+    setScanId("");
+    setGuestName("");
+    setGuestCollege("");
     setSelectedVisitor(null);
     setSelectedPurpose("");
     revokeAdminStatus();
@@ -110,6 +118,56 @@ export default function VisitorTerminal() {
     }, 600);
   };
 
+  const handleRfidScan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!scanId.trim()) return;
+
+    setIsProcessing(true);
+    setTimeout(() => {
+      const visitor = visitors.find(v => v.rfid === scanId || v.id === scanId);
+      
+      if (visitor) {
+        if (visitor.isBlocked) {
+          toast({
+            title: "Access Restricted",
+            description: "This ID has been restricted from entry.",
+            variant: "destructive"
+          });
+          setIsProcessing(false);
+          return;
+        }
+        setSelectedVisitor(visitor);
+        setStep("welcome");
+      } else {
+        setStep("guest-register");
+      }
+      setIsProcessing(false);
+    }, 500);
+  };
+
+  const handleGuestRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!guestName || !guestCollege) {
+      toast({ title: "Details Required", description: "Please provide a name and college.", variant: "destructive" });
+      return;
+    }
+
+    const newId = scanId || `GUEST-${Math.random().toString(36).substr(2, 9)}`;
+    const newVisitor = {
+      id: newId,
+      name: guestName,
+      college: guestCollege,
+      email: `${newId.toLowerCase()}@guest.neu.edu.ph`,
+      isEmployee: false,
+      rfid: scanId || undefined
+    };
+
+    registerUser(newVisitor);
+    setSelectedVisitor(newVisitor);
+    toast({ title: "Guest Registered", description: `Welcome to the library, ${guestName}!` });
+    setStep("welcome");
+  };
+
   const handleRoleChoice = (role: "admin" | "student") => {
     if (role === "admin") {
       claimAdminStatus();
@@ -147,7 +205,7 @@ export default function VisitorTerminal() {
 
       toast({
         title: "Entry Recorded",
-        description: `Welcome back, ${selectedVisitor.name.split(' ')[0]}!`,
+        description: `Welcome, ${selectedVisitor.name.split(' ')[0]}!`,
       });
 
       resetTerminal();
@@ -165,13 +223,12 @@ export default function VisitorTerminal() {
 
   return (
     <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center p-4 relative overflow-hidden font-body">
-      {/* Background Decoration */}
       <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #1a365d 1px, transparent 0)', backgroundSize: '32px 32px' }} />
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-4xl z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        {/* Left Column: Brand & Info */}
+        {/* Left Column */}
         <div className="lg:col-span-5 space-y-8 text-center lg:text-left">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-3 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20 shadow-sm">
@@ -217,7 +274,7 @@ export default function VisitorTerminal() {
           </div>
         </div>
 
-        {/* Right Column: Interaction Cards */}
+        {/* Right Column */}
         <div className="lg:col-span-7">
           {step === "identify" && (
             <Card className="glass-card border-none overflow-hidden animate-in fade-in slide-in-from-right-8 duration-500">
@@ -227,7 +284,7 @@ export default function VisitorTerminal() {
                   IDENTITY SCAN
                 </CardTitle>
                 <CardDescription className="text-sm font-medium">
-                  Enter institutional credentials to verify your scholarly profile.
+                  Enter credentials or use your student ID for immediate access.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -250,7 +307,7 @@ export default function VisitorTerminal() {
                     className="w-full h-14 text-lg font-black bg-primary hover:bg-primary/95 rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98]"
                     disabled={isProcessing}
                   >
-                    {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" /> : "VERIFY IDENTITY"}
+                    {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" /> : "VERIFY EMAIL"}
                   </Button>
                 </form>
 
@@ -265,27 +322,102 @@ export default function VisitorTerminal() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <Button 
-                    onClick={() => {
-                      const available = visitors.filter(v => !v.isBlocked);
-                      const rand = available[Math.floor(Math.random() * available.length)];
-                      setEmail(rand.email);
-                      toast({ title: "RFID Emulated", description: `ID detected: ${rand.name}` });
-                    }}
+                    onClick={() => setStep("rfid-entry")}
                     variant="outline" 
-                    className="h-20 border-2 border-dashed border-primary/20 hover:border-primary hover:bg-primary/5 rounded-2xl flex flex-col gap-1 transition-all group"
+                    className="h-24 border-2 border-dashed border-primary/20 hover:border-primary hover:bg-primary/5 rounded-2xl flex flex-col gap-1 transition-all group"
                   >
-                    <ScanFace className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
-                    <span className="text-[10px] font-bold uppercase">RFID TAP</span>
+                    <CreditCard className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-bold uppercase">ID / RFID TAP</span>
                   </Button>
                   <Button 
                     onClick={() => setStep("staff-portal")}
                     variant="outline" 
-                    className="h-20 border-2 border-dashed border-accent/20 hover:border-accent hover:bg-accent/5 rounded-2xl flex flex-col gap-1 transition-all group"
+                    className="h-24 border-2 border-dashed border-accent/20 hover:border-accent hover:bg-accent/5 rounded-2xl flex flex-col gap-1 transition-all group"
                   >
                     <Shield className="w-6 h-6 text-accent group-hover:scale-110 transition-transform" />
                     <span className="text-[10px] font-bold uppercase">STAFF GATE</span>
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === "rfid-entry" && (
+            <Card className="glass-card border-none animate-in fade-in zoom-in-95 duration-300">
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                  <CreditCard className="w-8 h-8 text-primary" />
+                </div>
+                <CardTitle className="text-2xl font-black text-primary uppercase">ID IDENTIFICATION</CardTitle>
+                <CardDescription className="text-sm font-medium">
+                  Enter your Student ID number or scan your RFID tag.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form onSubmit={handleRfidScan} className="space-y-4">
+                  <Input 
+                    placeholder="Enter ID Number (e.g. 2023-1234)" 
+                    className="h-14 text-lg text-center font-bold border-2 border-muted focus-visible:border-primary focus-visible:ring-0 rounded-2xl bg-white/50"
+                    value={scanId}
+                    onChange={(e) => setScanId(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                  <Button 
+                    type="submit" 
+                    className="w-full h-14 text-lg font-black bg-primary hover:bg-primary/95 rounded-2xl"
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? <Loader2 className="w-6 h-6 animate-spin" /> : "PROCEED"}
+                  </Button>
+                </form>
+                <Button variant="ghost" className="w-full h-12 font-bold text-xs uppercase tracking-widest" onClick={() => setStep("identify")}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === "guest-register" && (
+            <Card className="glass-card border-none animate-in fade-in zoom-in-95 duration-300">
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mb-2">
+                  <PlusCircle className="w-8 h-8 text-accent" />
+                </div>
+                <CardTitle className="text-2xl font-black text-primary uppercase">NEW PATRON</CardTitle>
+                <CardDescription className="text-sm font-medium">
+                  ID <strong>{scanId}</strong> not found. Please provide quick details to enter as a guest.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form onSubmit={handleGuestRegister} className="space-y-4">
+                  <Input 
+                    placeholder="Full Name" 
+                    className="h-12 border-2 border-muted rounded-xl bg-white/50"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    required
+                  />
+                  <Select value={guestCollege} onValueChange={setGuestCollege}>
+                    <SelectTrigger className="h-12 border-2 border-muted rounded-xl bg-white/50">
+                      <SelectValue placeholder="Select College / Office" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COLLEGES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-14 text-lg font-black bg-accent text-accent-foreground hover:bg-accent/90 rounded-2xl"
+                  >
+                    REGISTER & ENTER
+                  </Button>
+                </form>
+                <Button variant="ghost" className="w-full h-12 font-bold text-xs uppercase tracking-widest" onClick={() => setStep("rfid-entry")}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Different ID
+                </Button>
               </CardContent>
             </Card>
           )}
@@ -333,7 +465,7 @@ export default function VisitorTerminal() {
                   onClick={() => setStep("identify")}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Return to Patron Terminal
+                  Return
                 </Button>
               </CardContent>
             </Card>

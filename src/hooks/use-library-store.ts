@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect } from 'react';
@@ -65,6 +66,16 @@ export function useLibraryStore(options: UseLibraryStoreOptions = {}) {
     addDocumentNonBlocking(colRef, entryData);
   };
 
+  const registerUser = (visitor: LibraryVisitor) => {
+    if (!firestore) return;
+    const docRef = doc(firestore, 'users', visitor.id);
+    setDocumentNonBlocking(docRef, {
+      ...visitor,
+      isBlocked: false,
+      role: visitor.isEmployee ? 'Admin' : 'Visitor'
+    }, { merge: true });
+  };
+
   const toggleBlockVisitor = (visitorId: string) => {
     if (!firestore || !isAdmin) return;
     const visitor = visitors?.find(v => v.id === visitorId);
@@ -90,6 +101,7 @@ export function useLibraryStore(options: UseLibraryStoreOptions = {}) {
     logs: logs || [], 
     visitors: visitors || [], 
     addLog, 
+    registerUser,
     toggleBlockVisitor, 
     claimAdminStatus,
     revokeAdminStatus,
