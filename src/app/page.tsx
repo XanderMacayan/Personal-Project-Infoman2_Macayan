@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react";
@@ -5,15 +6,18 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BookOpen, UserCheck, Mail, ScanFace, ChevronRight, Lock, Quote } from "lucide-react";
+import { BookOpen, UserCheck, Mail, ScanFace, Lock, Quote } from "lucide-react";
 import { PURPOSES, LibraryVisitor } from "@/lib/mock-data";
 import { useLibraryStore } from "@/hooks/use-library-store";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useAuth } from "@/firebase";
+import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 
 export default function VisitorTerminal() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
   const { addLog, visitors, isLoaded } = useLibraryStore();
   
   const [step, setStep] = useState<"identify" | "welcome">("identify");
@@ -33,8 +37,9 @@ export default function VisitorTerminal() {
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     setQuote(libraryQuotes[Math.floor(Math.random() * libraryQuotes.length)]);
+    if (auth) initiateAnonymousSignIn(auth);
     return () => clearInterval(timer);
-  }, []);
+  }, [auth]);
 
   const handleIdentify = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +67,7 @@ export default function VisitorTerminal() {
 
   const handleRfidSimulate = () => {
     const available = visitors.filter(v => !v.isBlocked);
+    if (available.length === 0) return;
     const randomVisitor = available[Math.floor(Math.random() * available.length)];
     setSelectedVisitor(randomVisitor);
     setStep("welcome");
@@ -104,7 +110,6 @@ export default function VisitorTerminal() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4 relative overflow-hidden font-body">
-      {/* Admin Quick Access */}
       <Button 
         variant="ghost" 
         size="sm" 
@@ -115,7 +120,6 @@ export default function VisitorTerminal() {
         Librarian Login
       </Button>
 
-      {/* Decorative background pattern */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #1a365d 1px, transparent 0)', backgroundSize: '40px 40px' }} />
 
       <div className="w-full max-w-2xl z-10 space-y-8">

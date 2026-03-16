@@ -1,12 +1,47 @@
+
 "use client"
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, Users, BrainCircuit, Library, LogOut, ChevronLeft } from "lucide-react";
+import { LayoutDashboard, Users, BrainCircuit, Library, LogOut, ShieldAlert } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useLibraryStore } from "@/hooks/use-library-store";
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isAdmin, isLoaded } = useLibraryStore();
+
+  useEffect(() => {
+    if (isLoaded && !isAdmin) {
+      // Small delay to allow store to settle
+      const timer = setTimeout(() => {
+        if (!isAdmin) router.push("/");
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isAdmin, isLoaded, router]);
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Library className="animate-pulse text-primary w-12 h-12" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center space-y-4">
+        <ShieldAlert className="w-16 h-16 text-destructive" />
+        <h1 className="text-2xl font-bold">Unauthorized Access</h1>
+        <p className="text-muted-foreground">You do not have administrative privileges to access this area.</p>
+        <Button onClick={() => router.push("/")}>Return to Terminal</Button>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
