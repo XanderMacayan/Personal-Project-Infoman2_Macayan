@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BookOpen, UserCheck, Mail, ScanFace, Lock, Quote, Loader2, ShieldCheck, LayoutDashboard, Users } from "lucide-react";
+import { BookOpen, UserCheck, Mail, ScanFace, Lock, Quote, Loader2, ShieldCheck, LayoutDashboard, Users, LogOut, ArrowLeft } from "lucide-react";
 import { PURPOSES, LibraryVisitor } from "@/lib/mock-data";
 import { useLibraryStore } from "@/hooks/use-library-store";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +18,7 @@ export default function VisitorTerminal() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
-  const { addLog, visitors, isLoaded, claimAdminStatus, revokeAdminStatus } = useLibraryStore();
+  const { addLog, visitors, isLoaded, claimAdminStatus, revokeAdminStatus, isAdmin } = useLibraryStore();
   
   const [step, setStep] = useState<"identify" | "role-select" | "welcome">("identify");
   const [email, setEmail] = useState("");
@@ -36,13 +36,20 @@ export default function VisitorTerminal() {
   const [quote, setQuote] = useState("");
 
   useEffect(() => {
-    // Prevent hydration mismatch by only setting values on client mount
     setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     setQuote(libraryQuotes[Math.floor(Math.random() * libraryQuotes.length)]);
     if (auth) initiateAnonymousSignIn(auth);
     return () => clearInterval(timer);
   }, [auth]);
+
+  const resetTerminal = () => {
+    setStep("identify");
+    setEmail("");
+    setSelectedVisitor(null);
+    setSelectedPurpose("");
+    revokeAdminStatus();
+  };
 
   const handleIdentify = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +72,7 @@ export default function VisitorTerminal() {
 
         setSelectedVisitor(visitor);
 
-        // Conditional role routing for specific account
+        // Logic for role switching based on institutional email
         if (visitor.email === "jcesperanza@neu.edu.ph") {
           setStep("role-select");
         } else if (visitor.email === "admin@neu.edu.ph") {
@@ -109,6 +116,7 @@ export default function VisitorTerminal() {
     const randomVisitor = available[Math.floor(Math.random() * available.length)];
     
     setSelectedVisitor(randomVisitor);
+    setEmail(randomVisitor.email);
 
     if (randomVisitor.email === "jcesperanza@neu.edu.ph") {
       setStep("role-select");
@@ -147,10 +155,7 @@ export default function VisitorTerminal() {
         description: `Welcome back, ${selectedVisitor.name.split(' ')[0]}!`,
       });
 
-      setStep("identify");
-      setEmail("");
-      setSelectedVisitor(null);
-      setSelectedPurpose("");
+      resetTerminal();
     }
   };
 
@@ -165,15 +170,17 @@ export default function VisitorTerminal() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4 relative overflow-hidden font-body">
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="absolute top-4 right-4 text-muted-foreground hover:text-primary z-50"
-        onClick={() => router.push("/admin/dashboard")}
-      >
-        <Lock className="w-4 h-4 mr-2" />
-        Librarian Login
-      </Button>
+      {isAdmin && (
+        <Button 
+          variant="default" 
+          size="sm" 
+          className="absolute top-4 right-4 bg-accent text-accent-foreground hover:bg-accent/90 z-50 font-bold shadow-md"
+          onClick={() => router.push("/admin/dashboard")}
+        >
+          <LayoutDashboard className="w-4 h-4 mr-2" />
+          Go to Dashboard
+        </Button>
+      )}
 
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #1a365d 1px, transparent 0)', backgroundSize: '40px 40px' }} />
 
@@ -270,7 +277,7 @@ export default function VisitorTerminal() {
               </div>
               <CardTitle className="text-2xl font-bold text-primary">Access Mode</CardTitle>
               <CardDescription className="text-base">
-                Select how you want to access the library system.
+                Select how you want to access the library system for <strong>{email}</strong>.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
@@ -293,10 +300,11 @@ export default function VisitorTerminal() {
               </div>
               <Button 
                 variant="ghost" 
-                className="w-full h-12 font-bold rounded-xl" 
-                onClick={() => setStep("identify")}
+                className="w-full h-12 font-bold rounded-xl text-muted-foreground hover:text-destructive" 
+                onClick={resetTerminal}
               >
-                Go Back
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Switch to Different Email
               </Button>
             </CardContent>
           </Card>
@@ -349,10 +357,11 @@ export default function VisitorTerminal() {
               <div className="flex gap-4 pt-4">
                 <Button 
                   variant="ghost" 
-                  className="flex-1 h-12 font-bold rounded-xl"
-                  onClick={() => setStep("identify")}
+                  className="flex-1 h-12 font-bold rounded-xl text-muted-foreground"
+                  onClick={resetTerminal}
                 >
-                  Exit
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Cancel
                 </Button>
                 <Button 
                   className="flex-[2] h-12 bg-primary hover:bg-primary/95 text-lg font-bold rounded-xl shadow-xl active:scale-95 transition-transform"
