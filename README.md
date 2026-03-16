@@ -2,21 +2,59 @@
 
 An institutional-grade visitor monitoring and scholarly traffic analytics platform designed for the New Era University (NEU) Library. This system provides a seamless entry terminal for patrons and a robust administrative console for library staff.
 
-Link for website: https://personal-project-infoman2-macayan.vercel.app
+<div align="center">
+  <h1>📚 Library Management System</h1>
+  <p><strong>Live Demo:</strong> <a href="https://personal-project-infoman2-macayan.vercel.app">Visit Website</a></p>
+</div>
 
-<strong><h1>Account for testing</h1></strong>
-<br><strong>Password for Admin Dashboard: admin123</strong>
-<br><strong>Admin Access</strong>
+<hr>
 
-Jeremias C. Esperanza (jcesperanza@neu.edu.ph) - Prof (Student/Admin)  
-<br>Victor Crudo (vcrudo@neu.edu.ph) - IT Support (Librarian role available)
-<br>Anna Bautista (abautista@neu.edu.ph) - Library Staff (Librarian role available)
+<h2>🔑 Test Credentials</h2>
+<p>Use the following accounts to explore the different roles and permissions within the system.</p>
 
-<br><strong>Student</strong>
+<table border="1" cellpadding="10">
+  <thead>
+    <tr>
+      <th>Role</th>
+      <th>Name & Email</th>
+      <th>Department / Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="3"><strong>Admin / Faculty</strong><br><small>(Admin Pass: admin123)</small></td>
+      <td>Jeremias C. Esperanza <br><code>jcesperanza@neu.edu.ph</code></td>
+      <td>Professor (Student/Admin Access)</td>
+    </tr>
+    <tr>
+      <td>Victor Crudo <br><code>vcrudo@neu.edu.ph</code></td>
+      <td>IT Support (Librarian Role)</td>
+    </tr>
+    <tr>
+      <td>Anna Bautista <br><code>abautista@neu.edu.ph</code></td>
+      <td>Library Staff (Librarian Role)</td>
+    </tr>
+    <tr>
+      <td rowspan="3"><strong>Student</strong></td>
+      <td>Maria Garcia <br><code>mgarcia@neu.edu.ph</code></td>
+      <td>Engineering</td>
+    </tr>
+    <tr>
+      <td>Luis Tan <br><code>ltan@neu.edu.ph</code></td>
+      <td>Business</td>
+    </tr>
+    <tr>
+      <td>Rose Reyes <br><code>rreyes@neu.edu.ph</code></td>
+      <td>Nursing</td>
+    </tr>
+  </tbody>
+</table>
 
-<br>Maria Garcia (mgarcia@neu.edu.ph) - Student, Engineering
-<br>Luis Tan (ltan@neu.edu.ph) - Student, Business
-<br>Rose Reyes (rreyes@neu.edu.ph) - Student, Nursing
+<br>
+
+<blockquote>
+  <strong>Note:</strong> The password for the Admin Dashboard is <code>admin123</code>.
+</blockquote>
 
 
 ## 🚀 Features
